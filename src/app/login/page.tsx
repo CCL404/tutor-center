@@ -28,6 +28,7 @@ async function signIn(email: string, password: string) {
   localStorage.setItem(storageKey, JSON.stringify({
     access_token: data.access_token,
     expires_in: data.expires_in,
+    expires_at: data.expires_at ?? Math.floor(Date.now() / 1000) + data.expires_in,
     refresh_token: data.refresh_token,
     token_type: data.token_type,
     user: data.user,

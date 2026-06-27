@@ -15,26 +15,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 
-const SUPABASE_URL = 'https://tpmsqndrjrorfwxzvrcq.supabase.co'
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTYwNTcsImV4cCI6MjA5ODEzMjA1N30.Td8-yOHt3JqiY-88Q16s3-Gb4Fc0ka-vVjnzFHbAse0'
-const STORAGE_KEY = 'sb-tpmsqndrjrorfwxzvrcq-auth-token'
-
-function getToken() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw).access_token : null
-  } catch { return null }
-}
-
-async function apiGet(path: string) {
-  const token = getToken()
-  if (!token) return []
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) return []
-  return res.json()
-}
+import { apiGet, apiPatch, apiDelete } from '@/lib/supabase-api'
 
 export default function AdminTeachers() {
   const [teachers, setTeachers] = useState<any[]>([])
@@ -57,13 +38,8 @@ export default function AdminTeachers() {
     try {
       if (editing) {
         const subjects = ((form.get('subjects') as string) || '').split(',').map(s => s.trim()).filter(Boolean)
-        const token = getToken()
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/teachers?id=eq.${editing.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ subjects, color: form.get('color') as string }),
-        })
-        if (!res.ok) { toast.error('Update failed'); setSaving(false); return }
+        const ok = await apiPatch(`teachers?id=eq.${editing.id}`, { subjects, color: form.get('color') as string })
+        if (!ok) { toast.error('Update failed'); setSaving(false); return }
         toast.success('Updated')
       } else {
         const email = form.get('email') as string
@@ -105,12 +81,8 @@ export default function AdminTeachers() {
   }
 
   const remove = async (id: string) => {
-    const token = getToken()
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/teachers?id=eq.${id}`, {
-      method: 'DELETE',
-      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) { toast.error('Delete failed'); return }
+    const ok = await apiDelete(`teachers?id=eq.${id}`)
+    if (!ok) { toast.error('Delete failed'); return }
     toast.success('Deleted')
     load()
   }
