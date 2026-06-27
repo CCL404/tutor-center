@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent } from '@/components/ui/card'
-import { apiGet } from '@/lib/supabase-api'
+import { getAccessToken } from '@/lib/supabase-api'
 
 export default function TeacherStudents() {
   const { profile } = useAuth()
@@ -11,19 +11,15 @@ export default function TeacherStudents() {
 
   useEffect(() => {
     const load = async () => {
-      if (!profile) return
-      const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
-      if (!teachers?.[0]) return
+      if (!profile?.id) return
+      const token = await getAccessToken()
 
-      const sessions = await apiGet(`sessions?select=id&teacher_id=eq.${teachers[0].id}`)
-      if (!sessions?.length) return
-
-      const sessionIds = sessions.map((s: any) => s.id)
-      const ss = await apiGet(`session_students?select=student:students(id,notes,profile:profiles(name,email,phone))&in=session_id&session_id=in.(${sessionIds.join(',')})`)
-
-      const seen = new Set<string>()
-      const unique = (ss ?? []).map((s: any) => s.student).filter((s: any) => { if (seen.has(s.id)) return false; seen.add(s.id); return true })
-      setStudents(unique as any[])
+      const res = await fetch(`/api/teacher/students?userId=${profile.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      setStudents(data.students ?? [])
     }
     load()
   }, [profile])
@@ -42,7 +38,11 @@ export default function TeacherStudents() {
             </CardContent>
           </Card>
         ))}
-        {students.length === 0 && <Card className="col-span-full"><CardContent className="p-6 text-center text-muted-foreground">No students yet</CardContent></Card>}
+        {students.length === 0 && (
+          <Card className="col-span-full">
+            <CardContent className="p-6 text-center text-muted-foreground">No students yet</CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )

@@ -33,7 +33,7 @@ export default function AdminStudents() {
     const userIds = stuData.map((s: any) => s.user_id)
     if (userIds.length === 0) { setStudents([]); return }
 
-    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,phone&in=id&id=in.(${userIds.join(',')})`, {
+    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`, {
       headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
     })
     const profiles = profRes.ok ? await profRes.json() : []
