@@ -1,12 +1,10 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { User } from '@supabase/supabase-js'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import type { Profile } from '@/lib/types'
 
 interface AuthContextType {
-  user: User | null
+  user: { id: string; email: string } | null
   profile: Profile | null
   loading: boolean
   signOut: () => Promise<void>
@@ -19,81 +17,82 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 })
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{ user: User | null; profile: Profile | null; loading: boolean }>({
-    user: null,
-    profile: null,
-    loading: true,
-  })
-  const supabase = useRef<any>(null)
+const SUPABASE_URL = 'https://tpmsqndrjrorfwxzvrcq.supabase.co'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTYwNTcsImV4cCI6MjA5ODEzMjA1N30.Td8-yOHt3JqiY-88Q16s3-Gb4Fc0ka-vVjnzFHbAse0'
+const STORAGE_KEY = 'sb-tpmsqndrjrorfwxzvrcq-auth-token'
 
-  // Initialize sync on mount - no async dependencies
+function getStoredSession(): { id: string; email: string; accessToken: string } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (!data?.user?.id || !data?.user?.email) return null
+    return { id: data.user.id, email: data.user.email, accessToken: data.access_token }
+  } catch {
+    return null
+  }
+}
+
+async function fetchProfile(userId: string, accessToken: string): Promise<Profile | null> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}` },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data?.[0] || null
+  } catch {
+    return null
+  }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<{
+    user: { id: string; email: string } | null
+    profile: Profile | null
+    loading: boolean
+  }>({ user: null, profile: null, loading: true })
+
   useEffect(() => {
     let mounted = true
-    const client = createClient()
-    supabase.current = client
 
-    if (!client) {
-      setState({ user: null, profile: null, loading: false })
-      return
-    }
-
-    // Direct localStorage read for the initial state
-    const storedKey = Object.keys(localStorage).find(k =>
-      k.startsWith('sb-') && k.endsWith('-auth-token')
-    )
-    const storedData = storedKey ? localStorage.getItem(storedKey) : null
-
-    if (!storedData) {
-      setState({ user: null, profile: null, loading: false })
-      return
-    }
-
-    // We have stored session - try to use it immediately
-    client.auth.getSession().then(({ data: { session } }: any) => {
-      if (!mounted) return
-      if (!session?.user) {
-        setState({ user: null, profile: null, loading: false })
+    const load = async () => {
+      const session = getStoredSession()
+      if (!session) {
+        if (mounted) setState({ user: null, profile: null, loading: false })
         return
       }
 
-      setState(prev => ({ ...prev, user: session.user }))
+      if (mounted) setState(prev => ({ ...prev, user: { id: session.id, email: session.email } }))
 
-      // Fetch profile separately - don't block on it
-      client.from('profiles').select('*').eq('id', session.user.id).single()
-        .then(({ data }: any) => {
-          if (!mounted) return
-          setState({ user: session.user, profile: data || null, loading: false })
+      const profile = await fetchProfile(session.id, session.accessToken)
+      if (mounted) {
+        setState({
+          user: { id: session.id, email: session.email },
+          profile,
+          loading: false,
         })
-        .catch(() => {
-          if (mounted) setState(prev => ({ ...prev, loading: false }))
-        })
-    }).catch(() => {
-      if (mounted) setState({ user: null, profile: null, loading: false })
-    })
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = client.auth.onAuthStateChange(
-      async (event: string, session: any) => {
-        if (!mounted) return
-        if (event === 'SIGNED_IN' && session?.user) {
-          const { data } = await client.from('profiles').select('*').eq('id', session.user.id).single()
-          if (mounted) setState({ user: session.user, profile: data || null, loading: false })
-        } else if (event === 'SIGNED_OUT') {
-          if (mounted) setState({ user: null, profile: null, loading: false })
-        }
       }
-    )
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
     }
+
+    load()
+    return () => { mounted = false }
   }, [])
 
   const signOut = useCallback(async () => {
-    const client = createClient()
-    if (client) await client.auth.signOut()
+    try {
+      const session = getStoredSession()
+      if (session) {
+        await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+          method: 'POST',
+          headers: {
+            apikey: ANON_KEY,
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        })
+      }
+    } catch {}
+    localStorage.removeItem(STORAGE_KEY)
     setState({ user: null, profile: null, loading: false })
     window.location.href = '/login'
   }, [])
