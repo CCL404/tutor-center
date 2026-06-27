@@ -33,7 +33,7 @@ export default function AdminSchedule() {
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
     const [sessData, teacherData, studentData] = await Promise.all([
-      apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&gte=date&date=gte.${dateStart}&lte=date&date=lte.${dateEnd}&order=date&order=start_time`),
+      apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
       apiGet('teachers?select=*,profile:profiles(name)'),
       apiGet('students?select=*,profile:profiles(name)'),
     ])
