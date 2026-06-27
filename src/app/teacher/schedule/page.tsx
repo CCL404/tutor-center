@@ -31,7 +31,7 @@ export default function TeacherSchedule() {
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
     const [sessData, teacherData, stuRes] = await Promise.all([
-      apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
+      apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
       apiGet('teachers?select=*,profile:profiles(name)'),
       fetch('/api/admin/students').then(r => r.json()),
     ])
@@ -43,6 +43,15 @@ export default function TeacherSchedule() {
 
   useEffect(() => { load() }, [weekStart])
 
+  const openEdit = async (s: any) => {
+    setEditing(s)
+    // Load current students for this session
+    const ssData = await apiGet(`session_students?select=student_id&session_id=eq.${s.id}`)
+    setSelectedStudents((ssData ?? []).map((ss: any) => ss.student_id))
+    setStudentSearch('')
+    setOpen(true)
+  }
+
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
@@ -52,18 +61,30 @@ export default function TeacherSchedule() {
       date: form.get('date') as string,
       start_time: form.get('start_time') as string,
       end_time: form.get('end_time') as string,
-      price_per_student: parseFloat(form.get('price') as string) || 0,
     }
 
     const token = await getAccessToken()
 
     if (editing) {
+      // Update session
       const res = await fetch(`${SUPABASE_URL}/rest/v1/sessions?id=eq.${editing.id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       })
       if (!res.ok) { toast.error('Update failed'); return }
+
+      // Replace session_students: delete all then insert new
+      await fetch(`${SUPABASE_URL}/rest/v1/session_students?session_id=eq.${editing.id}`, {
+        method: 'DELETE', headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+      })
+      if (selectedStudents.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+          body: JSON.stringify(selectedStudents.map((sid: string) => ({ session_id: editing.id, student_id: sid }))),
+        })
+      }
     } else {
+      // Create session
       const res = await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}`, Prefer: 'return=representation' },
         body: JSON.stringify(data),
@@ -95,6 +116,10 @@ export default function TeacherSchedule() {
     load()
   }
 
+  // Build student name map
+  const studentMap: Record<string, string> = {}
+  students.forEach((s: any) => { if (s.profile?.name) studentMap[s.id] = s.profile.name })
+
   const byDay = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(weekStart, i)
     return { label: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i], dateStr: format(date, 'yyyy-MM-dd'), sessions: sessions.filter(s => s.date === format(date, 'yyyy-MM-dd')) }
@@ -109,7 +134,7 @@ export default function TeacherSchedule() {
           <span className="text-sm text-muted-foreground min-w-[140px] text-center">{format(weekStart, 'M/d')} - {format(addDays(weekStart, 6), 'M/d')}</span>
           <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setSelectedStudents([]) } }}>
+        <Dialog open={open} onOpenChange={(v) => { if (!v) { setOpen(false); setEditing(null); setSelectedStudents([]); setStudentSearch('') } }}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />New Session</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle></DialogHeader>
@@ -131,26 +156,23 @@ export default function TeacherSchedule() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label htmlFor="start_time">Start Time</Label><Input id="start_time" name="start_time" type="time" defaultValue={editing?.start_time ?? '09:00'} /></div>
                 <div className="space-y-2"><Label htmlFor="end_time">End Time</Label><Input id="end_time" name="end_time" type="time" defaultValue={editing?.end_time ?? '10:00'} /></div>
-                <div className="space-y-2"><Label htmlFor="price">Price ($)</Label><Input id="price" name="price" type="number" defaultValue={editing?.price_per_student ?? 0} /></div>
               </div>
-              {!editing && (
-                <div className="space-y-2">
-                  <Label>Students (select multiple)</Label>
-                  <Input placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-2" />
-                  <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                    {filteredStudents.map((s: any) => (
-                      <label key={s.id} className="flex items-center gap-1 text-sm cursor-pointer">
-                        <input type="checkbox" checked={selectedStudents.includes(s.id)}
-                          onChange={(e) => e.target.checked ? setSelectedStudents([...selectedStudents, s.id]) : setSelectedStudents(selectedStudents.filter((id: string) => id !== s.id))} />
-                        {s.profile?.name}
-                      </label>
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                <Label>Students (select multiple)</Label>
+                <Input placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-2" />
+                <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
+                  {filteredStudents.map((s: any) => (
+                    <label key={s.id} className="flex items-center gap-1 text-sm cursor-pointer">
+                      <input type="checkbox" checked={selectedStudents.includes(s.id)}
+                        onChange={(e) => e.target.checked ? setSelectedStudents([...selectedStudents, s.id]) : setSelectedStudents(selectedStudents.filter((id: string) => id !== s.id))} />
+                      {s.profile?.name}
+                    </label>
+                  ))}
                 </div>
-              )}
+              </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button type="submit">Save</Button>
+                <Button type="submit">{editing ? 'Update' : 'Create'}</Button>
               </div>
             </form>
           </DialogContent>
@@ -162,13 +184,16 @@ export default function TeacherSchedule() {
             <div className="text-center text-sm font-medium py-1 bg-muted rounded-md">{label}<br /><span className="text-muted-foreground text-xs">{format(new Date(dateStr + 'T00:00:00'), 'M/d')}</span></div>
             <div className="space-y-2 min-h-[120px]">
               {daySessions.map((s: any) => (
-                <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => { setEditing(s); setOpen(true) }}>
+                <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => openEdit(s)}>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.teacher?.color ?? '#6366f1' }} />
                     <span className="font-medium">{s.start_time?.slice(0, 5)}</span>
                   </div>
-                  <p>{s.subject}</p>
+                  <p className="font-medium">{s.subject}</p>
                   <p className="text-muted-foreground">{s.teacher?.profile?.name}</p>
+                  <p className="text-muted-foreground">
+                    {(s.session_students ?? []).map((ss: any) => studentMap[ss.student_id]).filter(Boolean).join(', ')}
+                  </p>
                   <Badge variant="outline" className="text-[10px] px-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); remove(s.id) }}>Delete</Badge>
                 </div>
               ))}
