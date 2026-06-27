@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/types'
@@ -23,10 +23,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
 
   useEffect(() => {
     let mounted = true
+    const supabase = createClient()
+    if (!supabase) { setLoading(false); return }
+    supabaseRef.current = supabase
 
     const init = async () => {
       try {
@@ -73,9 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [])
 
   const signOut = async () => {
+    const supabase = createClient()
+    if (!supabase) return
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
