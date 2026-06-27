@@ -42,9 +42,11 @@ const adminNav: NavItem[] = [
 ]
 
 const teacherNav: NavItem[] = [
-  { label: 'My Schedule', href: '/teacher', icon: <CalendarRange className="h-4 w-4" /> },
-  { label: 'Attendance', href: '/teacher/attendance', icon: <ClipboardCheck className="h-4 w-4" /> },
+  { label: 'Dashboard', href: '/teacher', icon: <LayoutDashboard className="h-4 w-4" /> },
+  { label: 'Schedule', href: '/teacher/schedule', icon: <CalendarRange className="h-4 w-4" /> },
   { label: 'Students', href: '/teacher/students', icon: <GraduationCap className="h-4 w-4" /> },
+  { label: 'Attendance', href: '/teacher/attendance', icon: <ClipboardCheck className="h-4 w-4" /> },
+  { label: 'Notifications', href: '/teacher/notifications', icon: <Bell className="h-4 w-4" /> },
 ]
 
 const studentNav: NavItem[] = [
