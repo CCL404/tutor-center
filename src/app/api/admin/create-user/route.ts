@@ -54,20 +54,18 @@ export async function POST(req: NextRequest) {
       }),
     })
 
-    // 3. Create teacher record if role is teacher
+    // 3. Create role-specific record
     if (role === 'teacher') {
       await fetch(`${SUPABASE_URL}/rest/v1/teachers`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          subjects: subjects || [],
-          color: color || '#6366f1',
-        }),
+        headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ user_id: userId, subjects: subjects || [], color: color || '#6366f1' }),
+      })
+    } else if (role === 'student') {
+      await fetch(`${SUPABASE_URL}/rest/v1/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ user_id: userId, notes: '' }),
       })
     }
 
