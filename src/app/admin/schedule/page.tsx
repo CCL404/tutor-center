@@ -38,7 +38,7 @@ export default function AdminSchedule() {
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
     const [sessData, teacherData, stuRes] = await Promise.all([
-      apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
+      apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
       apiGet('teachers?select=*,profile:profiles(name)'),
       fetch('/api/admin/students').then(r => r.json()),
     ])
@@ -49,6 +49,10 @@ export default function AdminSchedule() {
   }
 
   useEffect(() => { load() }, [weekStart])
+
+  // Build student name map for calendar display
+  const studentMap: Record<string, string> = {}
+  students.forEach((s: any) => { if (s.profile?.name) studentMap[s.id] = s.profile.name })
 
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -179,6 +183,9 @@ export default function AdminSchedule() {
                   </div>
                   <p>{s.subject}</p>
                   <p className="text-muted-foreground">{s.teacher?.profile?.name}</p>
+                  <p className="text-muted-foreground truncate">
+                    {(s.session_students ?? []).map((ss: any) => studentMap[ss.student_id]).filter(Boolean).join(', ')}
+                  </p>
                   <Badge variant="outline" className="text-[10px] px-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); remove(s.id) }}>Delete</Badge>
                 </div>
               ))}
