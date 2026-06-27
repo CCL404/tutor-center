@@ -20,6 +20,11 @@ export default function TeacherSchedule() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [studentSearch, setStudentSearch] = useState('')
+
+  const filteredStudents = students.filter((s: any) =>
+    !studentSearch || s.profile?.name?.toLowerCase().includes(studentSearch.toLowerCase())
+  )
 
   const load = async () => {
     const dateStart = format(weekStart, 'yyyy-MM-dd')
@@ -47,7 +52,6 @@ export default function TeacherSchedule() {
       date: form.get('date') as string,
       start_time: form.get('start_time') as string,
       end_time: form.get('end_time') as string,
-      room: form.get('room') as string || null,
       price_per_student: parseFloat(form.get('price') as string) || 0,
     }
 
@@ -127,14 +131,14 @@ export default function TeacherSchedule() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label htmlFor="start_time">Start Time</Label><Input id="start_time" name="start_time" type="time" defaultValue={editing?.start_time ?? '09:00'} /></div>
                 <div className="space-y-2"><Label htmlFor="end_time">End Time</Label><Input id="end_time" name="end_time" type="time" defaultValue={editing?.end_time ?? '10:00'} /></div>
-                <div className="space-y-2"><Label htmlFor="room">Room</Label><Input id="room" name="room" defaultValue={editing?.room ?? ''} /></div>
                 <div className="space-y-2"><Label htmlFor="price">Price ($)</Label><Input id="price" name="price" type="number" defaultValue={editing?.price_per_student ?? 0} /></div>
               </div>
               {!editing && (
                 <div className="space-y-2">
                   <Label>Students (select multiple)</Label>
+                  <Input placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-2" />
                   <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                    {students.map((s: any) => (
+                    {filteredStudents.map((s: any) => (
                       <label key={s.id} className="flex items-center gap-1 text-sm cursor-pointer">
                         <input type="checkbox" checked={selectedStudents.includes(s.id)}
                           onChange={(e) => e.target.checked ? setSelectedStudents([...selectedStudents, s.id]) : setSelectedStudents(selectedStudents.filter((id: string) => id !== s.id))} />
