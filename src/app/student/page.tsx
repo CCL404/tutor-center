@@ -59,7 +59,7 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Schedule</h1>
-        <p className="text-muted-foreground text-sm">即將上課的課堂</p>
+        <p className="text-muted-foreground text-sm">Upcoming sessions</p>
       </div>
 
       {upcoming.length === 0 ? (

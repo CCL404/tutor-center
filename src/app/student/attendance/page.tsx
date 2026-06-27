@@ -37,9 +37,9 @@ export default function StudentAttendance() {
   }, [profile, supabase])
 
   const statusLabel: Record<string, { label: string; color: string }> = {
-    present: { label: '出席', color: 'bg-green-100 text-green-800' },
-    absent: { label: '缺席', color: 'bg-red-100 text-red-800' },
-    makeup: { label: '補課', color: 'bg-blue-100 text-blue-800' },
+    present: { label: 'Present', color: 'bg-green-100 text-green-800' },
+    absent: { label: 'Absent', color: 'bg-red-100 text-red-800' },
+    makeup: { label: 'Make-up', color: 'bg-blue-100 text-blue-800' },
   }
 
   return (
@@ -49,7 +49,7 @@ export default function StudentAttendance() {
       {records.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            暫無Attendance Records
+            No attendance records
           </CardContent>
         </Card>
       ) : (
