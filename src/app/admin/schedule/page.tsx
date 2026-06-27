@@ -32,15 +32,15 @@ export default function AdminSchedule() {
     const dateStart = format(weekStart, 'yyyy-MM-dd')
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
-    const [sessData, teacherData, studentData] = await Promise.all([
+    const [sessData, teacherData, stuRes] = await Promise.all([
       apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
       apiGet('teachers?select=*,profile:profiles(name)'),
-      apiGet('students?select=*,profile:profiles(name)'),
+      fetch('/api/admin/students').then(r => r.json()),
     ])
 
     setSessions(sessData ?? [])
     setTeachers(teacherData ?? [])
-    setStudents(studentData ?? [])
+    setStudents(stuRes?.students ?? [])
   }
 
   useEffect(() => { load() }, [weekStart])
@@ -56,8 +56,6 @@ export default function AdminSchedule() {
       end_time: form.get('end_time') as string,
       room: form.get('room') as string || null,
       price_per_student: parseFloat(form.get('price') as string) || 0,
-      is_recurring: form.get('is_recurring') === 'on',
-      recur_day: form.get('is_recurring') === 'on' ? new Date(form.get('date') as string).getDay() : null,
     }
 
     const token = await getAccessToken()
@@ -142,7 +140,6 @@ export default function AdminSchedule() {
                 <div className="space-y-2"><Label htmlFor="room">Room</Label><Input id="room" name="room" defaultValue={editing?.room ?? ''} /></div>
                 <div className="space-y-2"><Label htmlFor="price">Price ($)</Label><Input id="price" name="price" type="number" defaultValue={editing?.price_per_student ?? 0} /></div>
               </div>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_recurring" defaultChecked={editing?.is_recurring} /> Repeat weekly</label>
               {!editing && (
                 <div className="space-y-2">
                   <Label>Students (select multiple)</Label>
