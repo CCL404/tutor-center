@@ -91,7 +91,7 @@ export default function AdminSchedule() {
       }
     }
 
-    toast.success(editing ? '已更新' : '已New')
+    toast.success(editing ? 'Updated' : 'Created')
     setOpen(false)
     setEditing(null)
     setSelectedStudents([])
@@ -101,7 +101,7 @@ export default function AdminSchedule() {
   const remove = async (id: string) => {
     const { error } = await supabase.from('sessions').delete().eq('id', id)
     if (error) { toast.error(error.message); return }
-    toast.success('已Delete')
+    toast.success('Deleted')
     load()
   }
 
@@ -137,14 +137,14 @@ export default function AdminSchedule() {
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{editing ? 'Edit課堂' : 'New Session'}</DialogTitle>
+              <DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={save} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="teacher_id">老師</Label>
+                  <Label htmlFor="teacher_id">Teacher</Label>
                   <Select name="teacher_id" defaultValue={editing?.teacher_id}>
-                    <SelectTrigger><SelectValue placeholder="選擇老師" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select teacher" /></SelectTrigger>
                     <SelectContent>
                       {teachers.map((t) => (
                         <SelectItem key={t.id} value={t.id}>{t.profile?.name}</SelectItem>
@@ -153,29 +153,29 @@ export default function AdminSchedule() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subject">科目</Label>
+                  <Label htmlFor="subject">Subject</Label>
                   <Input id="subject" name="subject" defaultValue={editing?.subject} required />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date">日期</Label>
+                <Label htmlFor="date">Date</Label>
                 <Input id="date" name="date" type="date" defaultValue={editing?.date ?? format(weekStart, 'yyyy-MM-dd')} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start_time">開始時間</Label>
+                  <Label htmlFor="start_time">Start Time</Label>
                   <Input id="start_time" name="start_time" type="time" defaultValue={editing?.start_time ?? '09:00'} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="end_time">結束時間</Label>
+                  <Label htmlFor="end_time">End Time</Label>
                   <Input id="end_time" name="end_time" type="time" defaultValue={editing?.end_time ?? '10:00'} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="room">教室</Label>
+                  <Label htmlFor="room">Room</Label>
                   <Input id="room" name="room" defaultValue={editing?.room ?? ''} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="price">單價 ($)</Label>
+                  <Label htmlFor="price">Price ($)</Label>
                   <Input id="price" name="price" type="number" defaultValue={editing?.price_per_student ?? 0} />
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function AdminSchedule() {
 
               {!editing && (
                 <div className="space-y-2">
-                  <Label>學生（可多選）</Label>
+                  <Label>Students (select multiple)</Label>
                   <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
                     {students.map((s) => (
                       <label key={s.id} className="flex items-center gap-1 text-sm cursor-pointer">

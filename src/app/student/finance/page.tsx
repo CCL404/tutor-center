@@ -78,10 +78,10 @@ export default function StudentFinance() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>日期</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Due</TableHead>
                 <TableHead>Paid</TableHead>
-                <TableHead>狀態</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>

@@ -60,13 +60,13 @@ export default function TeacherStudents() {
         {students.map((s: any) => (
           <Card key={s.id}>
             <CardContent className="p-4 space-y-2">
-              <p className="font-medium">{s.profile?.name ?? '未知'}</p>
+              <p className="font-medium">{s.profile?.name ?? 'Unknown'}</p>
               <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
               {s.profile?.phone && (
-                <p className="text-xs text-muted-foreground">Phone：{s.profile.phone}</p>
+                <p className="text-xs text-muted-foreground">Phone: {s.profile.phone}</p>
               )}
               {s.notes && (
-                <p className="text-xs text-muted-foreground italic">Notes：{s.notes}</p>
+                <p className="text-xs text-muted-foreground italic">Notes: {s.notes}</p>
               )}
             </CardContent>
           </Card>

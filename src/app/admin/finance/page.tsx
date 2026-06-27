@@ -100,9 +100,9 @@ export default function AdminFinance() {
             </DialogHeader>
             <form onSubmit={save} className="space-y-4">
               <div className="space-y-2">
-                <Label>學生</Label>
+                <Label htmlFor="student_id">Student</Label>
                 <Select name="student_id">
-                  <SelectTrigger><SelectValue placeholder="選擇學生" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
                   <SelectContent>
                     {students.map((s) => (
                       <SelectItem key={s.id} value={s.id}>{s.profile?.name}</SelectItem>
@@ -178,7 +178,7 @@ export default function AdminFinance() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>學生</TableHead>
+                    <TableHead>Student</TableHead>
                     <TableHead>Due</TableHead>
                     <TableHead>Paid</TableHead>
                     <TableHead>Outstanding</TableHead>
@@ -190,7 +190,7 @@ export default function AdminFinance() {
                 <TableBody>
                   {payments.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell>{p.student?.profile?.name ?? '未知'}</TableCell>
+                      <TableCell>{p.student?.profile?.name ?? 'Unknown'}</TableCell>
                       <TableCell>${p.amount_due.toFixed(0)}</TableCell>
                       <TableCell>${p.amount_paid.toFixed(0)}</TableCell>
                       <TableCell className={p.amount_due > p.amount_paid ? 'text-red-600 font-medium' : ''}>

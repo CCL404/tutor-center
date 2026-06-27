@@ -48,7 +48,7 @@ export default function AdminStudents() {
       .update(updates)
       .eq('id', editing.id)
     if (error) { toast.error(error.message); return }
-    toast.success('已更新')
+    toast.success('Updated')
     setOpen(false)
     setEditing(null)
     load()
@@ -61,7 +61,7 @@ export default function AdminStudents() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search學生Name或電郵..."
+            placeholder="Search name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -74,22 +74,22 @@ export default function AdminStudents() {
           <Card key={s.id}>
             <CardContent className="p-4 space-y-3">
               <div>
-                <p className="font-medium">{s.profile?.name ?? '未知'}</p>
+                <p className="font-medium">{s.profile?.name ?? 'Unknown'}</p>
                 <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
               </div>
               {s.profile?.phone && (
                 <p className="text-xs text-muted-foreground">
-                  Phone：{s.profile.phone}
+                  Phone: {s.profile.phone}
                 </p>
               )}
               {s.parent && (
                 <p className="text-xs text-muted-foreground">
-                  Parent：{s.parent.name} ({s.parent.email})
+                  Parent: {s.parent.name} ({s.parent.email})
                 </p>
               )}
               {s.notes && (
                 <p className="text-xs text-muted-foreground italic">
-                  Notes：{s.notes}
+                  Notes: {s.notes}
                 </p>
               )}
               <Button
@@ -97,7 +97,7 @@ export default function AdminStudents() {
                 size="sm"
                 onClick={() => { setEditing(s); setOpen(true) }}
               >
-                EditNotes
+                Edit Notes
               </Button>
             </CardContent>
           </Card>
@@ -114,7 +114,7 @@ export default function AdminStudents() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit學生Notes</DialogTitle>
+            <DialogTitle>Edit Student Notes</DialogTitle>
           </DialogHeader>
           <form onSubmit={save} className="space-y-4">
             <div className="space-y-2">
@@ -127,7 +127,7 @@ export default function AdminStudents() {
                 id="notes"
                 name="notes"
                 defaultValue={editing?.notes ?? ''}
-                placeholder="特殊學習需求、注意事項..."
+                placeholder="Special needs, notes..."
               />
             </div>
             <div className="flex justify-end gap-2">
