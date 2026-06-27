@@ -134,7 +134,7 @@ export default function TeacherSchedule() {
           <span className="text-sm text-muted-foreground min-w-[140px] text-center">{format(weekStart, 'M/d')} - {format(addDays(weekStart, 6), 'M/d')}</span>
           <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { if (!v) { setOpen(false); setEditing(null); setSelectedStudents([]); setStudentSearch('') } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setSelectedStudents([]); setStudentSearch('') } }}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />New Session</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle></DialogHeader>
