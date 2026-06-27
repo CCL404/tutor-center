@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Plus, Search } from 'lucide-react'
-import { getAccessToken, ANON_KEY, SUPABASE_URL } from '@/lib/supabase-api'
 
 export default function TeacherStudents() {
   const [students, setStudents] = useState<any[]>([])
@@ -17,37 +16,16 @@ export default function TeacherStudents() {
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
-    const token = await getAccessToken()
-    if (!token) return
-
-    const stuRes = await fetch(`${SUPABASE_URL}/rest/v1/students?select=id,user_id,notes,created_at&order=created_at.desc`, {
-      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-    })
-    if (!stuRes.ok) { setStudents([]); return }
-    const stuData = await stuRes.json()
-
-    const userIds = stuData.map((s: any) => s.user_id)
-    if (userIds.length === 0) { setStudents([]); return }
-
-    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`, {
-      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-    })
-    const profiles = profRes.ok ? await profRes.json() : []
-
-    const profileMap: Record<string, any> = {}
-    profiles.forEach((p: any) => { profileMap[p.id] = p })
-
-    let merged = stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] }))
+    const res = await fetch('/api/admin/students')
+    const data = await res.json()
+    const all = data.students ?? []
 
     if (search) {
       const q = search.toLowerCase()
-      merged = merged.filter((s: any) =>
-        s.profile?.name?.toLowerCase().includes(q) ||
-        s.profile?.email?.toLowerCase().includes(q)
-      )
+      setStudents(all.filter((s: any) => s.profile?.name?.toLowerCase().includes(q) || s.profile?.email?.toLowerCase().includes(q)))
+    } else {
+      setStudents(all)
     }
-
-    setStudents(merged)
   }
 
   useEffect(() => { load() }, [search])
@@ -60,15 +38,10 @@ export default function TeacherStudents() {
     const password = form.get('password') as string
     const name = form.get('name') as string
 
-    if (!email || !password) {
-      toast.error('Email and password are required')
-      setSaving(false)
-      return
-    }
+    if (!email || !password) { toast.error('Email and password are required'); setSaving(false); return }
 
     const res = await fetch('/api/admin/create-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name, role: 'student' }),
     })
     const result = await res.json()
@@ -98,10 +71,7 @@ export default function TeacherStudents() {
                 <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required placeholder="student@email.com" /></div>
                 <div className="space-y-2"><Label htmlFor="password">Temporary Password</Label><Input id="password" name="password" type="text" required placeholder="Set a temporary password" /></div>
                 <div className="space-y-2"><Label htmlFor="name">Display Name</Label><Input id="name" name="name" placeholder="e.g. Alex Wang" /></div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
-                </div>
+                <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button><Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button></div>
               </form>
             </DialogContent>
           </Dialog>
