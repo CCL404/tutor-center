@@ -1,12 +1,64 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
+
+const SUPABASE_URL = 'https://tpmsqndrjrorfwxzvrcq.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTYwNTcsImV4cCI6MjA5ODEzMjA1N30.Td8-yOHt3JqiY-88Q16s3-Gb4Fc0ka-vVjnzFHbAse0'
+
+async function signIn(email: string, password: string) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) {
+    const errBody = await res.json()
+    throw new Error(errBody.error_description || errBody.msg || 'Login failed')
+  }
+  const data = await res.json()
+
+  // Store session in localStorage for Supabase client to pick up
+  const projectRef = SUPABASE_URL.match(/https:\/\/(.+)\.supabase/)?.[1] || 'tpmsqndrjrorfwxzvrcq'
+  const storageKey = `sb-${projectRef}-auth-token`
+  localStorage.setItem(storageKey, JSON.stringify({
+    access_token: data.access_token,
+    expires_in: data.expires_in,
+    refresh_token: data.refresh_token,
+    token_type: data.token_type,
+    user: data.user,
+  }))
+
+  return data
+}
+
+async function fetchRole(userId: string, accessToken: string) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=role`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  })
+  if (!res.ok) return null
+  const profiles = await res.json()
+  return profiles?.[0]?.role || null
+}
+
+async function signUp(email: string, password: string) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.msg || 'Signup failed')
+  }
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -19,40 +71,22 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
-
       if (mode === 'login') {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+        const data = await signIn(email, password)
 
-        // Fetch role directly after login — skip the home page redirect dance
-        const userId = data.user?.id
-        if (userId) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', userId)
-            .single()
+        // Fetch role and redirect immediately
+        const role = data.user?.id ? await fetchRole(data.user.id, data.access_token) : null
 
-          const role = profile?.role
-          if (role === 'admin') {
-            window.location.href = '/admin'
-          } else if (role === 'teacher') {
-            window.location.href = '/teacher'
-          } else {
-            window.location.href = '/student'
-          }
-        } else {
-          window.location.href = '/'
-        }
+        if (role === 'admin') window.location.href = '/admin'
+        else if (role === 'teacher') window.location.href = '/teacher'
+        else window.location.href = '/'
+
+        // If redirect doesn't happen, clear loading
+        setLoading(false)
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name: email.split('@')[0] } },
-        })
-        if (error) throw error
+        await signUp(email, password)
         toast.success('Account created! Check your email to confirm.')
+        setLoading(false)
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'An error occurred'
