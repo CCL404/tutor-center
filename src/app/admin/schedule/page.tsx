@@ -50,6 +50,13 @@ export default function AdminSchedule() {
 
   useEffect(() => { load() }, [weekStart])
 
+  const openEdit = async (s: any) => {
+    setEditing(s)
+    const ssData = await apiGet(`session_students?select=student_id&session_id=eq.${s.id}`)
+    setSelectedStudents((ssData ?? []).map((ss: any) => ss.student_id))
+    setOpen(true)
+  }
+
   // Build student name map for calendar display
   const studentMap: Record<string, string> = {}
   students.forEach((s: any) => { if (s.profile?.name) studentMap[s.id] = s.profile.name })
@@ -74,6 +81,16 @@ export default function AdminSchedule() {
         body: JSON.stringify(data),
       })
       if (!res.ok) { toast.error('Update failed'); return }
+      // Replace students
+      await fetch(`${SUPABASE_URL}/rest/v1/session_students?session_id=eq.${editing.id}`, {
+        method: 'DELETE', headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+      })
+      if (selectedStudents.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+          body: JSON.stringify(selectedStudents.map(sid => ({ session_id: editing.id, student_id: sid }))),
+        })
+      }
     } else {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}`, Prefer: 'return=representation' },
@@ -147,8 +164,7 @@ export default function AdminSchedule() {
                 <div className="space-y-2"><Label htmlFor="end_time">End Time</Label><Input id="end_time" name="end_time" type="time" defaultValue={editing?.end_time ?? '10:00'} /></div>
                 <div className="space-y-2"><Label htmlFor="price">Price ($)</Label><Input id="price" name="price" type="number" defaultValue={editing?.price_per_student ?? 0} /></div>
               </div>
-              {!editing && (
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <Label>Students (select multiple)</Label>
                   <Input placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-2" />
                   <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
@@ -161,7 +177,6 @@ export default function AdminSchedule() {
                     ))}
                   </div>
                 </div>
-              )}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                 <Button type="submit">Save</Button>
@@ -176,7 +191,7 @@ export default function AdminSchedule() {
             <div className="text-center text-sm font-medium py-1 bg-muted rounded-md">{label}<br /><span className="text-muted-foreground text-xs">{format(new Date(dateStr + 'T00:00:00'), 'M/d')}</span></div>
             <div className="space-y-2 min-h-[120px]">
               {daySessions.map((s: any) => (
-                <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => { setEditing(s); setOpen(true) }}>
+                <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => openEdit(s)}>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.teacher?.color ?? '#6366f1' }} />
                     <span className="font-medium">{s.start_time?.slice(0, 5)}</span>
