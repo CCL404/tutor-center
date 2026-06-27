@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,18 +15,35 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 
+const SUPABASE_URL = 'https://tpmsqndrjrorfwxzvrcq.supabase.co'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTYwNTcsImV4cCI6MjA5ODEzMjA1N30.Td8-yOHt3JqiY-88Q16s3-Gb4Fc0ka-vVjnzFHbAse0'
+const STORAGE_KEY = 'sb-tpmsqndrjrorfwxzvrcq-auth-token'
+
+function getToken() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw).access_token : null
+  } catch { return null }
+}
+
+async function apiGet(path: string) {
+  const token = getToken()
+  if (!token) return []
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) return []
+  return res.json()
+}
+
 export default function AdminTeachers() {
-  const supabase = createClient()
   const [teachers, setTeachers] = useState<any[]>([])
   const [editing, setEditing] = useState<any | null>(null)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
-    const { data } = await supabase
-      .from('teachers')
-      .select('*, profile:profiles(name, email, phone)')
-      .order('created_at')
+    const data = await apiGet('teachers?select=*,profile:profiles(name,email,phone)&order=created_at')
     setTeachers(data ?? [])
   }
 
@@ -40,18 +56,20 @@ export default function AdminTeachers() {
 
     try {
       if (editing) {
-        const subjects = ((form.get('subjects') as string) || '').split(',').map((s: string) => s.trim()).filter(Boolean)
-        const { error } = await supabase
-          .from('teachers')
-          .update({ subjects, color: form.get('color') as string })
-          .eq('id', editing.id)
-        if (error) { toast.error(error.message); return }
+        const subjects = ((form.get('subjects') as string) || '').split(',').map(s => s.trim()).filter(Boolean)
+        const token = getToken()
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/teachers?id=eq.${editing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ subjects, color: form.get('color') as string }),
+        })
+        if (!res.ok) { toast.error('Update failed'); setSaving(false); return }
         toast.success('Updated')
       } else {
         const email = form.get('email') as string
         const password = form.get('password') as string
         const name = form.get('name') as string
-        const subjects = ((form.get('subjects') as string) || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+        const subjects = ((form.get('subjects') as string) || '').split(',').map(s => s.trim()).filter(Boolean)
         const color = form.get('color') as string || '#6366f1'
 
         if (!email || !password) {
@@ -87,8 +105,12 @@ export default function AdminTeachers() {
   }
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from('teachers').delete().eq('id', id)
-    if (error) { toast.error(error.message); return }
+    const token = getToken()
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/teachers?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) { toast.error('Delete failed'); return }
     toast.success('Deleted')
     load()
   }
@@ -163,10 +185,7 @@ export default function AdminTeachers() {
           <Card key={t.id}>
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: t.color }}
-                />
+                <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
                 <div>
                   <p className="font-medium">{t.profile?.name ?? t.profile?.email ?? 'Unknown'}</p>
                   <p className="text-xs text-muted-foreground">{t.profile?.email}</p>
