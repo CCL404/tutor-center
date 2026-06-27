@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -100,7 +99,7 @@ export default function TeacherAttendance() {
     }
 
     setAttendance(prev => ({ ...prev, [studentId]: status }))
-    toast.success('已更新出席狀態')
+    toast.success('Attendance updated')
   }
 
   const getStatusIcon = (status: string) => {
@@ -117,14 +116,14 @@ export default function TeacherAttendance() {
       <div>
         <h1 className="text-2xl font-bold">Take Attendance</h1>
         <p className="text-muted-foreground text-sm">
-          {format(new Date(), 'yyyy年M月d日')}
+          {format(new Date(), 'yyyy/M/d')}
         </p>
       </div>
 
       {!teacherId && (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            尚未分配老師資料
+            Teacher profile not set up yet. Please contact admin.
           </CardContent>
         </Card>
       )}
@@ -133,7 +132,7 @@ export default function TeacherAttendance() {
       {sessions.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-muted-foreground">
-            今日沒有課堂需要標記出席
+            No sessions today
           </CardContent>
         </Card>
       ) : (
@@ -162,7 +161,7 @@ export default function TeacherAttendance() {
       {selectedSession && students.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">學生出席</CardTitle>
+            <CardTitle className="text-lg">Student Attendance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -184,8 +183,8 @@ export default function TeacherAttendance() {
                         }`}
                         onClick={() => setStatus(s.id, status)}
                         title={
-                          status === 'present' ? '出席' :
-                          status === 'absent' ? '缺席' : '補課'
+                          status === 'present' ? 'Present' :
+                          status === 'absent' ? 'Absent' : 'Make-up'
                         }
                       >
                         {status === 'present' ? <Check className="h-4 w-4" /> :
