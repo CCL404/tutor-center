@@ -3,10 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { format, addMonths, subMonths } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, addMonths } from 'date-fns'
 import { apiAdmin } from '@/lib/supabase-api'
 
 export default function StudentFinance() {
@@ -64,13 +62,12 @@ export default function StudentFinance() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">My Finance</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMonth(subMonths(month, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[120px] text-center">{format(month, 'MMMM yyyy')}</span>
-          <Button variant="outline" size="sm" onClick={() => setMonth(addMonths(month, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <input
+            type="month"
+            value={monthStr}
+            onChange={e => setMonth(new Date(e.target.value + '-01'))}
+            className="text-sm font-medium text-center border rounded px-2 py-1 w-auto"
+          />
         </div>
       </div>
 
