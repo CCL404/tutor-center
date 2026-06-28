@@ -11,10 +11,12 @@ import { toast } from 'sonner'
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns'
 import { apiGet, getAccessToken, ANON_KEY, SUPABASE_URL } from '@/lib/supabase-api'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function TeacherSchedule() {
+  const { profile } = useAuth()
   const [sessions, setSessions] = useState<any[]>([])
-  const [teachers, setTeachers] = useState<any[]>([])
+  const [teacherId, setTeacherId] = useState<string | null>(null)
   const [students, setStudents] = useState<any[]>([])
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [open, setOpen] = useState(false)
@@ -30,18 +32,22 @@ export default function TeacherSchedule() {
     const dateStart = format(weekStart, 'yyyy-MM-dd')
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
-    const [sessData, teacherData, stuRes] = await Promise.all([
+    // Get current teacher's ID
+    if (!teacherId && profile) {
+      const tData = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
+      if (tData?.[0]) setTeacherId(tData[0].id)
+    }
+
+    const [sessData, stuRes] = await Promise.all([
       apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
-      apiGet('teachers?select=*,profile:profiles(name)'),
       fetch('/api/admin/students').then(r => r.json()),
     ])
 
     setSessions(sessData ?? [])
-    setTeachers(teacherData ?? [])
     setStudents(stuRes?.students ?? [])
   }
 
-  useEffect(() => { load() }, [weekStart])
+  useEffect(() => { load() }, [weekStart, profile])
 
   const openEdit = async (s: any) => {
     setEditing(s)
@@ -56,7 +62,7 @@ export default function TeacherSchedule() {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const data = {
-      teacher_id: form.get('teacher_id') as string,
+      teacher_id: teacherId || editing?.teacher_id,
       subject: form.get('subject') as string,
       date: form.get('date') as string,
       start_time: form.get('start_time') as string,
@@ -140,13 +146,6 @@ export default function TeacherSchedule() {
             <DialogHeader><DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="teacher_id">Teacher</Label>
-                  <select name="teacher_id" defaultValue={editing?.teacher_id} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="">Select teacher</option>
-                    {teachers.map((t: any) => <option key={t.id} value={t.id}>{t.profile?.name}</option>)}
-                  </select>
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
                   <Input id="subject" name="subject" defaultValue={editing?.subject} required />
