@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,42 +9,33 @@ import { format } from 'date-fns'
 import { Check, X, RotateCcw } from 'lucide-react'
 import { apiGet, getAccessToken, ANON_KEY, SUPABASE_URL } from '@/lib/supabase-api'
 
-export default function TeacherAttendance() {
-  const { profile } = useAuth()
+export default function AdminAttendance() {
   const [sessions, setSessions] = useState<any[]>([])
   const [selectedSession, setSelectedSession] = useState<any | null>(null)
   const [students, setStudents] = useState<any[]>([])
   const [attendance, setAttendance] = useState<Record<string, string>>({})
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [teacherId, setTeacherId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
-      if (!profile) return
-      const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
-      if (!teachers?.[0]) return
-      setTeacherId(teachers[0].id)
-
-      const data = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&teacher_id=eq.${teachers[0].id}&date=eq.${date}&order=start_time`)
+      const data = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=eq.${date}&order=start_time`)
       setSessions(data ?? [])
       setSelectedSession(null)
       setStudents([])
       setAttendance({})
     }
     load()
-  }, [profile, date])
+  }, [date])
 
   const loadStudents = async (session: any) => {
     setSelectedSession(session)
     setStudents([])
     setAttendance({})
 
-    // Get enrolled students via API
     const stuRes = await fetch(`/api/attendance/session-students?sessionId=${session.id}`)
     const stuData = await stuRes.json()
     setStudents(stuData.students ?? [])
 
-    // Get existing attendance records for this session + date
     const att = await apiGet(`attendance?select=*&session_id=eq.${session.id}&date=eq.${date}`)
     const attMap: Record<string, string> = {}
     att?.forEach((a: any) => { attMap[a.student_id] = a.status })
@@ -81,8 +71,6 @@ export default function TeacherAttendance() {
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" />
       </div>
 
-      {!teacherId && <Card><CardContent className="p-6 text-center text-muted-foreground">Teacher profile not set up. Please contact admin.</CardContent></Card>}
-
       {sessions.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No sessions on this date</CardContent></Card>
       ) : (
@@ -104,6 +92,7 @@ export default function TeacherAttendance() {
           <CardHeader>
             <CardTitle className="text-lg">
               {selectedSession.subject} — {selectedSession.start_time?.slice(0, 5)} ~ {selectedSession.end_time?.slice(0, 5)}
+              <span className="text-sm font-normal text-muted-foreground ml-2">{selectedSession.teacher?.profile?.name}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>

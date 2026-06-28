@@ -40,6 +40,7 @@ const adminNav: NavItem[] = [
   { label: 'Students', href: '/admin/students', icon: <GraduationCap className="h-4 w-4" /> },
   { label: 'Finance', href: '/admin/finance', icon: <DollarSign className="h-4 w-4" /> },
   { label: 'Notifications', href: '/admin/notifications', icon: <Bell className="h-4 w-4" /> },
+  { label: 'Attendance', href: '/admin/attendance', icon: <ClipboardCheck className="h-4 w-4" /> },
 ]
 
 const teacherNav: NavItem[] = [
