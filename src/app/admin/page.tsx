@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const load = async () => {
       setLoaded(false)
+      const start = Date.now()
       const today = format(new Date(), 'yyyy-MM-dd')
 
       const sessions = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=eq.${today}&order=start_time`)
@@ -41,6 +42,9 @@ export default function AdminDashboard() {
         totalStudents: students?.length ?? 0,
         outstandingPayments: totalDue - totalPaid,
       })
+      // Minimum loading display time
+      const elapsed = Date.now() - start
+      if (elapsed < 200) await new Promise(r => setTimeout(r, 200 - elapsed))
       setLoaded(true)
     }
     load()

@@ -27,6 +27,7 @@ export default function TeacherAttendance() {
     const load = async () => {
       if (!profile) { setLoaded(true); return }
       setLoaded(false)
+      const start = Date.now()
       const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
       if (!teachers?.[0]) { setLoaded(true); return }
       setTeacherId(teachers[0].id)
@@ -37,6 +38,8 @@ export default function TeacherAttendance() {
       setStudents([])
       setAttendance({})
       setDirty(new Set())
+      const elapsed = Date.now() - start
+      if (elapsed < 200) await new Promise(r => setTimeout(r, 200 - elapsed))
       setLoaded(true)
     }
     load()

@@ -23,12 +23,15 @@ export default function AdminAttendance() {
   useEffect(() => {
     const load = async () => {
       setLoaded(false)
+      const start = Date.now()
       const data = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=eq.${date}&order=start_time`)
       setSessions(data ?? [])
       setSelectedSession(null)
       setStudents([])
       setAttendance({})
       setDirty(new Set())
+      const elapsed = Date.now() - start
+      if (elapsed < 200) await new Promise(r => setTimeout(r, 200 - elapsed))
       setLoaded(true)
     }
     load()

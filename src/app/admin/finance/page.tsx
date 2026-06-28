@@ -24,6 +24,7 @@ export default function AdminFinance() {
 
   const load = useCallback(async () => {
     setLoaded(false)
+    const start = Date.now()
     const stuData = (await apiAdmin('students?select=id,user_id,notes&order=created_at.desc')) ?? []
     const userIds = stuData.map((s: any) => s.user_id).filter(Boolean)
     const profiles = userIds.length > 0 ? (await apiAdmin(`profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`)) ?? [] : []
@@ -71,6 +72,8 @@ export default function AdminFinance() {
     setStudents(stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] ?? null })))
     setSessionsMap(ssMap)
     setPaymentsMap(payMap)
+    const elapsed = Date.now() - start
+    if (elapsed < 200) await new Promise(r => setTimeout(r, 200 - elapsed))
     setLoaded(true)
   }, [monthStr])
 
