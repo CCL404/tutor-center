@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const sessionIds = sessions.map((s: any) => s.id)
 
     // Get session_students with student profiles
-    const ssRes = await fetch(`${SUPABASE_URL}/rest/v1/session_students?select=student_id,student:students!inner(id,notes,user_id)&in=session_id&session_id=in.(${sessionIds.join(',')})`, {
+    const ssRes = await fetch(`${SUPABASE_URL}/rest/v1/session_students?select=student_id,student:students!inner(id,notes,user_id)&session_id=in.(${sessionIds.join(',')})`, {
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
     })
     const ssData = await ssRes.json()

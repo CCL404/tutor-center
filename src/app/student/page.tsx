@@ -26,7 +26,7 @@ export default function StudentDashboard() {
       if (!sessionIds?.length) { setLoaded(true); return }
 
       const ids = sessionIds.map((s: any) => s.session_id)
-      const sessions = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&in=id&id=in.(${ids.join(',')})&or=(date.gt.${today},and(date.eq.${today},start_time.gte.${time}))&order=date.asc,start_time.asc&limit=10`)
+      const sessions = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&id=in.(${ids.join(',')})&or=(date.gt.${today},and(date.eq.${today},start_time.gte.${time}))&order=date.asc,start_time.asc&limit=10`)
 
       setUpcoming(sessions ?? [])
       setLoaded(true)
