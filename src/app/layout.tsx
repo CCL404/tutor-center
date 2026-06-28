@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "狀元軒",
-  description: "狀元軒 Tutor Center Management System",
+  description: "狀元軒 - 補習社管理系統",
 };
 
 export default function RootLayout({
