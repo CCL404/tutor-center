@@ -61,9 +61,24 @@ async function signUp(email: string, password: string) {
   }
 }
 
+async function completeSignup(email: string, name: string, role: string) {
+  const res = await fetch('/api/auth/complete-signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name, role }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Profile setup failed')
+  }
+  return res.json()
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [role, setRole] = useState<'student' | 'teacher'>('student')
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
 
@@ -86,7 +101,9 @@ export default function LoginPage() {
         setLoading(false)
       } else {
         await signUp(email, password)
-        toast.success('Account created! Check your email to confirm.')
+        await completeSignup(email, name, role)
+        toast.success(`${role === 'teacher' ? 'Teacher' : 'Student'} account created! You can now sign in.`)
+        setMode('login')
         setLoading(false)
       }
     } catch (err: unknown) {
@@ -130,6 +147,27 @@ export default function LoginPage() {
                 minLength={6}
               />
             </div>
+            {mode === 'signup' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Display Name</Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex Wang" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <div className="flex gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="role" value="student" checked={role === 'student'} onChange={() => setRole('student')} />
+                      <span className="text-sm">Student</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={() => setRole('teacher')} />
+                      <span className="text-sm">Teacher</span>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
             </Button>
