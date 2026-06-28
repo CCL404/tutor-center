@@ -22,7 +22,7 @@ export default function StudentFinance() {
     if (!student) { setLoaded(true); return }
 
     const monthStart = `${monthStr}-01`
-    const monthEnd = format(addMonths(month, 1), 'yyyy-MM-dd')
+    const monthEnd = format(addMonths(new Date(monthStart), 1), 'yyyy-MM-dd')
 
     // All enrolled sessions (not filtered by attendance)
     const enrolled = (await apiAdmin(`session_students?select=id,price,session:sessions(id,date,subject,start_time)&student_id=eq.${student.id}&session.date=gte.${monthStart}&session.date=lt.${monthEnd}`)) ?? []

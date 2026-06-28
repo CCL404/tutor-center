@@ -33,7 +33,7 @@ export default function AdminFinance() {
     const ssMap: Record<string, any[]> = {}
     const payMap: Record<string, number> = {}
     const monthStart = `${monthStr}-01`
-    const monthEnd = format(addMonths(month, 1), 'yyyy-MM-dd')
+    const monthEnd = format(addMonths(new Date(monthStart), 1), 'yyyy-MM-dd')
 
     await Promise.all(stuData.map(async (s: any) => {
       const sid = s.id
