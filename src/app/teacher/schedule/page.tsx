@@ -17,6 +17,7 @@ export default function TeacherSchedule() {
   const { profile } = useAuth()
   const [sessions, setSessions] = useState<any[]>([])
   const [teacherId, setTeacherId] = useState<string | null>(null)
+  const [currentTeacher, setCurrentTeacher] = useState<any | null>(null)
   const [students, setStudents] = useState<any[]>([])
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [open, setOpen] = useState(false)
@@ -32,10 +33,13 @@ export default function TeacherSchedule() {
     const dateStart = format(weekStart, 'yyyy-MM-dd')
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
-    // Get current teacher's ID
+    // Get current teacher's ID and info
     if (!teacherId && profile) {
-      const tData = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
-      if (tData?.[0]) setTeacherId(tData[0].id)
+      const tData = await apiGet(`teachers?select=id,color,subjects,profile:profiles(name)&user_id=eq.${profile.id}`)
+      if (tData?.[0]) {
+        setTeacherId(tData[0].id)
+        setCurrentTeacher(tData[0])
+      }
     }
 
     const [sessData, stuRes] = await Promise.all([
@@ -146,6 +150,13 @@ export default function TeacherSchedule() {
             <DialogHeader><DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle></DialogHeader>
             <form onSubmit={save} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Teacher</Label>
+                  <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full shrink-0 mr-2" style={{ backgroundColor: editing?.teacher?.color || currentTeacher?.color || '#6366f1' }} />
+                    {editing?.teacher?.profile?.name || currentTeacher?.profile?.name || 'Loading...'}
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
                   <Input id="subject" name="subject" defaultValue={editing?.subject} required />
