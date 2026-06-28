@@ -45,17 +45,19 @@ export default function AdminFinance() {
 
       // Enrolled sessions
       const ssRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}&order=session.date.desc,session.start_time.desc`,
+        `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}`,
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
       )
       const enrolled = ssRes.ok ? await ssRes.json() : []
-      ssMap[sid] = enrolled.map((e: any) => ({
-        id: e.session?.id,
-        date: e.session?.date,
-        subject: e.session?.subject,
-        start_time: e.session?.start_time,
-        price: e.price || 0,
-      }))
+      ssMap[sid] = enrolled
+        .map((e: any) => ({
+          id: e.session?.id,
+          date: e.session?.date,
+          subject: e.session?.subject,
+          start_time: e.session?.start_time,
+          price: e.price || 0,
+        }))
+        .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
 
       // Payments
       const payRes = await fetch(`${SUPABASE_URL}/rest/v1/payments?select=amount_paid&student_id=eq.${sid}`, {

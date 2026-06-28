@@ -26,17 +26,20 @@ export default function StudentFinance() {
 
       // Get enrolled sessions with prices
       const ssRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${student.id}&order=session.date.desc,session.start_time.desc`,
+        `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${student.id}`,
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
       )
       const enrolled = ssRes.ok ? await ssRes.json() : []
-      setSessions(enrolled.map((e: any) => ({
-        id: e.session?.id,
-        date: e.session?.date,
-        subject: e.session?.subject,
-        start_time: e.session?.start_time,
-        price: e.price || 0,
-      })))
+      setSessions(enrolled
+        .map((e: any) => ({
+          id: e.session?.id,
+          date: e.session?.date,
+          subject: e.session?.subject,
+          start_time: e.session?.start_time,
+          price: e.price || 0,
+        }))
+        .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
+      ))
 
       // Get payments made
       const payRes = await fetch(`${SUPABASE_URL}/rest/v1/payments?select=amount_paid,paid_at,notes&student_id=eq.${student.id}&order=created_at.desc`, {
