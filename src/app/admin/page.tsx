@@ -25,8 +25,8 @@ export default function AdminDashboard() {
       const totalPaid = payments.reduce((s: number, p: any) => s + (p.amount_paid || 0), 0)
 
       const sessionStudents = (await apiAdmin('session_students?select=session_id,price,student_id')) ?? []
-      const attendance = (await apiAdmin('attendance?select=session_id,student_id')) ?? []
-      const attendedKeys = new Set(attendance.map((a: any) => `${a.session_id}|${a.student_id}`))
+      const attendance = (await apiAdmin('attendance?select=session_id,student_id,status')) ?? []
+      const attendedKeys = new Set(attendance.filter((a: any) => a.status === 'present').map((a: any) => `${a.session_id}|${a.student_id}`))
 
       // Filter session_students to only those with attendance
       const totalDue = sessionStudents

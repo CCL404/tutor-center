@@ -25,7 +25,7 @@ export default function StudentFinance() {
 
       // Get attendance — only sessions with attendance count toward fees
       const attendanceRecords = (await apiAdmin(`attendance?select=session_id&student_id=eq.${student.id}`)) ?? []
-      const attendedSessionIds = new Set(attendanceRecords.map((a: any) => a.session_id))
+      const attendedSessionIds = new Set(attendanceRecords.filter((a: any) => a.status === 'present').map((a: any) => a.session_id))
 
       setSessions(enrolled
         .filter((e: any) => attendedSessionIds.has(e.session?.id))

@@ -40,7 +40,7 @@ export default function AdminFinance() {
 
       // Get attendance records
       const attendanceRecords = (await apiAdmin(`attendance?select=session_id,date,status&student_id=eq.${sid}`)) ?? []
-      const attendedSessionIds = new Set(attendanceRecords.map((a: any) => a.session_id))
+      const attendedSessionIds = new Set(attendanceRecords.filter((a: any) => a.status === 'present').map((a: any) => a.session_id))
       const statusMap: Record<string, string> = {}
       attendanceRecords.forEach((a: any) => { statusMap[a.session_id] = a.status })
 
