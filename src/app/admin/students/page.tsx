@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Plus, Search } from 'lucide-react'
-import { apiGet, apiPatch, getAccessToken, ANON_KEY, SUPABASE_URL } from '@/lib/supabase-api'
+import { apiPatch } from '@/lib/supabase-api'
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([])
@@ -19,41 +19,19 @@ export default function AdminStudents() {
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
-    const token = await getAccessToken()
-    if (!token) return
+    const res = await fetch('/api/admin/students')
+    const data = await res.json()
+    const all = data.students ?? []
 
-    // Get all student IDs first
-    const stuRes = await fetch(`${SUPABASE_URL}/rest/v1/students?select=id,user_id,notes,created_at&order=created_at.desc`, {
-      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-    })
-    if (!stuRes.ok) { setStudents([]); return }
-    const stuData = await stuRes.json()
-
-    // Get profiles for all students
-    const userIds = stuData.map((s: any) => s.user_id)
-    if (userIds.length === 0) { setStudents([]); return }
-
-    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`, {
-      headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-    })
-    const profiles = profRes.ok ? await profRes.json() : []
-
-    // Merge
-    const profileMap: Record<string, any> = {}
-    profiles.forEach((p: any) => { profileMap[p.id] = p })
-
-    let merged = stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] }))
-
-    // Filter by search
     if (search) {
       const q = search.toLowerCase()
-      merged = merged.filter((s: any) =>
+      setStudents(all.filter((s: any) =>
         s.profile?.name?.toLowerCase().includes(q) ||
         s.profile?.email?.toLowerCase().includes(q)
-      )
+      ))
+    } else {
+      setStudents(all)
     }
-
-    setStudents(merged)
   }
 
   useEffect(() => { load() }, [search])
@@ -135,19 +113,28 @@ export default function AdminStudents() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {students.map((s) => (
-          <Card key={s.id}>
-            <CardContent className="p-4 space-y-3">
-              <div>
-                <p className="font-medium">{s.profile?.name ?? 'Unknown'}</p>
-                <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
-              </div>
-              {s.profile?.phone && <p className="text-xs text-muted-foreground">Phone: {s.profile.phone}</p>}
-              {s.notes && <p className="text-xs text-muted-foreground italic">Notes: {s.notes}</p>}
-              <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}>Edit Notes</Button>
-            </CardContent>
-          </Card>
-        ))}
+        {students.map((s) => {
+          const st = s.stats || { totalSessions: 0, attended: 0, totalDue: 0, totalPaid: 0, outstanding: 0 }
+          return (
+            <Card key={s.id}>
+              <CardContent className="p-4 space-y-3">
+                <div>
+                  <p className="font-medium">{s.profile?.name ?? 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
+                </div>
+                {s.profile?.phone && <p className="text-xs text-muted-foreground">Phone: {s.profile.phone}</p>}
+                {s.notes && <p className="text-xs text-muted-foreground italic">Notes: {s.notes}</p>}
+                <div className="flex gap-3 text-xs pt-1 border-t">
+                  <span>📚 {st.attended}/{st.totalSessions} classes</span>
+                  <span className={st.outstanding > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
+                    ${st.outstanding.toFixed(2)} outstanding
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}>Edit Notes</Button>
+              </CardContent>
+            </Card>
+          )
+        })}
         {students.length === 0 && (
           <Card className="col-span-full">
             <CardContent className="p-6 text-center text-muted-foreground">
