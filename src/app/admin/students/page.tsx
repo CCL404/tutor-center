@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { Plus, Search } from 'lucide-react'
+import { Edit, Plus, Search, Trash2 } from 'lucide-react'
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([])
@@ -155,7 +155,7 @@ export default function AdminStudents() {
                 </div>
                 {s.profile?.phone && <p className="text-xs text-muted-foreground">Phone: {s.profile.phone}</p>}
                 {s.notes && <p className="text-xs text-muted-foreground italic">Notes: {s.notes}</p>}
-                <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}>Edit</Button>
+                <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}><Edit className="h-3 w-3 mr-1" />Edit</Button>
               </CardContent>
             </Card>
           )
@@ -193,7 +193,7 @@ export default function AdminStudents() {
               <div>
                 {confirmDelete !== editing?.profile?.email ? (
                   <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={() => setConfirmDelete(editing?.profile?.email ?? '')}>
-                    Delete Student
+                    <Trash2 className="h-4 w-4 mr-1" />Delete Student
                   </Button>
                 ) : (
                   <div className="flex items-center gap-2">
