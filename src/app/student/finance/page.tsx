@@ -30,7 +30,17 @@ export default function StudentFinance() {
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
       )
       const enrolled = ssRes.ok ? await ssRes.json() : []
+
+      // Get attendance — only sessions with attendance count toward fees
+      const attRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/attendance?select=session_id&student_id=eq.${student.id}`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      )
+      const attendanceRecords = attRes.ok ? await attRes.json() : []
+      const attendedSessionIds = new Set(attendanceRecords.map((a: any) => a.session_id))
+
       setSessions(enrolled
+        .filter((e: any) => attendedSessionIds.has(e.session?.id))
         .map((e: any) => ({
           id: e.session?.id,
           date: e.session?.date,

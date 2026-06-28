@@ -43,13 +43,24 @@ export default function AdminFinance() {
     await Promise.all(stuData.map(async (s: any) => {
       const sid = s.id
 
-      // Enrolled sessions
+      // Get all enrolled sessions with prices
       const ssRes = await fetch(
         `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}`,
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
       )
       const enrolled = ssRes.ok ? await ssRes.json() : []
+
+      // Get attendance records — only sessions with attendance count toward fees
+      const attRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/attendance?select=session_id,date,status&student_id=eq.${sid}`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      )
+      const attendanceRecords = attRes.ok ? await attRes.json() : []
+      const attendedSessionIds = new Set(attendanceRecords.map((a: any) => a.session_id))
+
+      // Only include sessions that have attendance marked
       ssMap[sid] = enrolled
+        .filter((e: any) => attendedSessionIds.has(e.session?.id))
         .map((e: any) => ({
           id: e.session?.id,
           date: e.session?.date,
