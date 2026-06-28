@@ -23,6 +23,7 @@ import {
   X,
   GraduationCap,
   ClipboardCheck,
+  UserCog,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -127,6 +128,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link href="/profile"><UserCog className="h-4 w-4 mr-2" />Profile Settings</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={signOut} className="text-destructive">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
