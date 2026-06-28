@@ -80,4 +80,30 @@ export async function apiDelete(path: string): Promise<boolean> {
   return res.ok
 }
 
+// Server-side proxy: calls our API route which uses SERVICE_KEY (not exposed to client)
+export async function apiAdmin(path: string): Promise<any[] | null> {
+  try {
+    const res = await fetch(`/api/supabase?path=${encodeURIComponent(path)}`)
+    const json = await res.json()
+    return json.error ? null : json.data
+  } catch {
+    return null
+  }
+}
+
+// Server-side proxy: POST
+export async function apiAdminPost(path: string, body: any, prefer?: string): Promise<any> {
+  try {
+    const res = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, body, prefer }),
+    })
+    const json = await res.json()
+    return json.error ? null : json.data
+  } catch {
+    return null
+  }
+}
+
 export { SUPABASE_URL, ANON_KEY, STORAGE_KEY }

@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CalendarRange, Users, DollarSign, BookOpen } from 'lucide-react'
 import { format } from 'date-fns'
-import { apiGet, SUPABASE_URL } from '@/lib/supabase-api'
-
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1NjA1NywiZXhwIjoyMDk4MTMyMDU3fQ.oesRAH8vpOQRx1Qz6gGfudZFsuYF4zfwb3VZTZtdCdo'
+import { apiGet, apiAdmin } from '@/lib/supabase-api'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ todaySessions: 0, totalTeachers: 0, totalStudents: 0, outstandingPayments: 0 })
@@ -23,27 +21,11 @@ export default function AdminDashboard() {
       const students = await apiGet('students?select=id')
 
       // Calculate outstanding: total session fees (attendance confirmed) - total payments
-      const skHeaders = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
-      
-      // Sum all payments
-      const payRes = await fetch(`${SUPABASE_URL}/rest/v1/payments?select=amount_paid`, {
-        headers: skHeaders,
-      })
-      const payments = payRes.ok ? await payRes.json() : []
+      const payments = (await apiAdmin('payments?select=amount_paid')) ?? []
       const totalPaid = payments.reduce((s: number, p: any) => s + (p.amount_paid || 0), 0)
 
-      // Sum all session_students prices with attendance
-      const ssRes = await fetch(`${SUPABASE_URL}/rest/v1/session_students?select=session_id,price,student_id`, {
-        headers: skHeaders,
-      })
-      const sessionStudents = ssRes.ok ? await ssRes.json() : []
-
-      // Get all attendance to know which sessions count
-      const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance?select=session_id,student_id`, {
-        headers: skHeaders,
-      })
-      const attendance = attRes.ok ? await attRes.json() : []
-      // Build a set of "session_student" attendance combos
+      const sessionStudents = (await apiAdmin('session_students?select=session_id,price,student_id')) ?? []
+      const attendance = (await apiAdmin('attendance?select=session_id,student_id')) ?? []
       const attendedKeys = new Set(attendance.map((a: any) => `${a.session_id}|${a.student_id}`))
 
       // Filter session_students to only those with attendance

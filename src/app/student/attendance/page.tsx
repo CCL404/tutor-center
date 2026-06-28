@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-
-const SUPABASE_URL = 'https://tpmsqndrjrorfwxzvrcq.supabase.co'
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1NjA1NywiZXhwIjoyMDk4MTMyMDU3fQ.oesRAH8vpOQRx1Qz6gGfudZFsuYF4zfwb3VZTZtdCdo'
+import { apiAdmin } from '@/lib/supabase-api'
 
 export default function StudentAttendance() {
   const { profile } = useAuth()
@@ -15,17 +13,12 @@ export default function StudentAttendance() {
   useEffect(() => {
     const load = async () => {
       if (!profile) return
-      const studentRes = await fetch(`${SUPABASE_URL}/rest/v1/students?select=id&user_id=eq.${profile.id}`, {
-        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
-      })
-      const studentList = studentRes.ok ? await studentRes.json() : []
+      const studentList = await apiAdmin(`students?select=id&user_id=eq.${profile.id}`)
       const student = studentList?.[0]
       if (!student) return
 
-      const attRes = await fetch(`${SUPABASE_URL}/rest/v1/attendance?select=*,session:sessions(subject,start_time,end_time,teacher:teachers(profile:profiles(name)))&student_id=eq.${student.id}&order=date.desc`, {
-        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
-      })
-      setRecords(attRes.ok ? await attRes.json() : [])
+      const attRecords = await apiAdmin(`attendance?select=*,session:sessions(subject,start_time,end_time,teacher:teachers(profile:profiles(name)))&student_id=eq.${student.id}&order=date.desc`)
+      setRecords(attRecords ?? [])
     }
     load()
   }, [profile])

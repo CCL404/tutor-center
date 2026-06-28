@@ -5,9 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { format } from 'date-fns'
-
-const SUPABASE_URL = 'https://tpmsqndrjrorfwxzvrcq.supabase.co'
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1NjA1NywiZXhwIjoyMDk4MTMyMDU3fQ.oesRAH8vpOQRx1Qz6gGfudZFsuYF4zfwb3VZTZtdCdo'
+import { apiAdmin } from '@/lib/supabase-api'
 
 export default function StudentFinance() {
   const { profile } = useAuth()
@@ -18,25 +16,15 @@ export default function StudentFinance() {
   useEffect(() => {
     const load = async () => {
       if (!profile) return
-      const studentRes = await fetch(`${SUPABASE_URL}/rest/v1/students?select=id&user_id=eq.${profile.id}`, {
-        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
-      })
-      const student = studentRes.ok ? (await studentRes.json())?.[0] : null
+      const students = await apiAdmin(`students?select=id&user_id=eq.${profile.id}`)
+      const student = students?.[0]
       if (!student) { setLoaded(true); return }
 
       // Get enrolled sessions with prices
-      const ssRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${student.id}`,
-        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
-      )
-      const enrolled = ssRes.ok ? await ssRes.json() : []
+      const enrolled = (await apiAdmin(`session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${student.id}`)) ?? []
 
       // Get attendance — only sessions with attendance count toward fees
-      const attRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/attendance?select=session_id&student_id=eq.${student.id}`,
-        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
-      )
-      const attendanceRecords = attRes.ok ? await attRes.json() : []
+      const attendanceRecords = (await apiAdmin(`attendance?select=session_id&student_id=eq.${student.id}`)) ?? []
       const attendedSessionIds = new Set(attendanceRecords.map((a: any) => a.session_id))
 
       setSessions(enrolled
@@ -52,10 +40,7 @@ export default function StudentFinance() {
       )
 
       // Get payments made
-      const payRes = await fetch(`${SUPABASE_URL}/rest/v1/payments?select=amount_paid,paid_at,notes&student_id=eq.${student.id}&order=created_at.desc`, {
-        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
-      })
-      const payments = payRes.ok ? await payRes.json() : []
+      const payments = (await apiAdmin(`payments?select=amount_paid,paid_at,notes&student_id=eq.${student.id}&order=created_at.desc`)) ?? []
       setTotalPaid(payments.reduce((s: number, p: any) => s + (p.amount_paid || 0), 0))
       setLoaded(true)
     }
