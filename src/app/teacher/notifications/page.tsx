@@ -17,15 +17,18 @@ export default function TeacherNotifications() {
   const [message, setMessage] = useState('')
   const [selectedUser, setSelectedUser] = useState<string>('all')
   const [notifType, setNotifType] = useState<'email' | 'whatsapp'>('email')
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
+      setLoaded(false)
       const [uData, lData] = await Promise.all([
         apiGet('profiles?select=*&order=name'),
         apiGet('notifications?select=*,profile:profiles(name)&order=sent_at.desc&limit=50'),
       ])
       setUsers(uData ?? [])
       setLogs(lData ?? [])
+      setLoaded(true)
     }
     load()
   }, [])
@@ -95,7 +98,11 @@ export default function TeacherNotifications() {
                   <TableCell className="max-w-xs truncate">{l.message}</TableCell>
                 </TableRow>
               ))}
-              {logs.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No records yet</TableCell></TableRow>}
+              {!loaded ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Loading...</TableCell></TableRow>
+              ) : logs.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No records yet</TableCell></TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </CardContent>

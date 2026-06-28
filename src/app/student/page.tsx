@@ -9,24 +9,27 @@ import { apiGet } from '@/lib/supabase-api'
 export default function StudentDashboard() {
   const { profile } = useAuth()
   const [upcoming, setUpcoming] = useState<any[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       if (!profile) return
+      setLoaded(false)
       const students = await apiGet(`students?select=id&user_id=eq.${profile.id}`)
-      if (!students?.[0]) return
+      if (!students?.[0]) { setLoaded(true); return }
 
       const now = new Date()
       const today = now.toISOString().slice(0, 10)
       const time = now.toTimeString().slice(0, 5)
 
       const sessionIds = await apiGet(`session_students?select=session_id&student_id=eq.${students[0].id}`)
-      if (!sessionIds?.length) return
+      if (!sessionIds?.length) { setLoaded(true); return }
 
       const ids = sessionIds.map((s: any) => s.session_id)
       const sessions = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&in=id&id=in.(${ids.join(',')})&or=(date.gt.${today},and(date.eq.${today},start_time.gte.${time}))&order=date&order=start_time&limit=10`)
 
       setUpcoming(sessions ?? [])
+      setLoaded(true)
     }
     load()
   }, [profile])
@@ -37,7 +40,9 @@ export default function StudentDashboard() {
         <h1 className="text-2xl font-bold">My Schedule</h1>
         <p className="text-muted-foreground text-sm">Upcoming sessions</p>
       </div>
-      {upcoming.length === 0 ? (
+      {!loaded ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Loading...</CardContent></Card>
+      ) : upcoming.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No upcoming sessions</CardContent></Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

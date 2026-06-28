@@ -9,9 +9,11 @@ import { apiGet, apiAdmin } from '@/lib/supabase-api'
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ todaySessions: 0, totalTeachers: 0, totalStudents: 0, outstandingPayments: 0 })
   const [todaySessions, setTodaySessions] = useState<any[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
+      setLoaded(false)
       const today = format(new Date(), 'yyyy-MM-dd')
 
       const sessions = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=eq.${today}&order=start_time`)
@@ -39,6 +41,7 @@ export default function AdminDashboard() {
         totalStudents: students?.length ?? 0,
         outstandingPayments: totalDue - totalPaid,
       })
+      setLoaded(true)
     }
     load()
   }, [])
@@ -72,7 +75,9 @@ export default function AdminDashboard() {
       <Card>
         <CardHeader><CardTitle className="text-lg">Today&apos;s Sessions</CardTitle></CardHeader>
         <CardContent>
-          {todaySessions.length === 0 ? (
+          {!loaded ? (
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          ) : todaySessions.length === 0 ? (
             <p className="text-muted-foreground text-sm">No sessions today</p>
           ) : (
             <div className="space-y-3">

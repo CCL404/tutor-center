@@ -18,9 +18,11 @@ export default function AdminFinance() {
   const [payDialog, setPayDialog] = useState<{ student: any; totalDue: number; totalPaid: number } | null>(null)
   const [saving, setSaving] = useState(false)
   const [month, setMonth] = useState(new Date())
+  const [loaded, setLoaded] = useState(false)
   const monthStr = format(month, 'yyyy-MM')
 
   const load = useCallback(async () => {
+    setLoaded(false)
     const stuData = (await apiAdmin('students?select=id,user_id,notes&order=created_at.desc')) ?? []
     const userIds = stuData.map((s: any) => s.user_id).filter(Boolean)
     const profiles = userIds.length > 0 ? (await apiAdmin(`profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`)) ?? [] : []
@@ -68,6 +70,7 @@ export default function AdminFinance() {
     setStudents(stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] ?? null })))
     setSessionsMap(ssMap)
     setPaymentsMap(payMap)
+    setLoaded(true)
   }, [monthStr])
 
   useEffect(() => { load() }, [load])
@@ -218,7 +221,9 @@ export default function AdminFinance() {
         )
       })}
 
-      {students.filter(s => (sessionsMap[s.id] || []).length > 0).length === 0 && (
+      {!loaded ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Loading...</CardContent></Card>
+      ) : students.filter(s => (sessionsMap[s.id] || []).length > 0).length === 0 && (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No students found</CardContent></Card>
       )}
 

@@ -15,14 +15,17 @@ export default function AdminAttendance() {
   const [students, setStudents] = useState<any[]>([])
   const [attendance, setAttendance] = useState<Record<string, string>>({})
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
+      setLoaded(false)
       const data = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&date=eq.${date}&order=start_time`)
       setSessions(data ?? [])
       setSelectedSession(null)
       setStudents([])
       setAttendance({})
+      setLoaded(true)
     }
     load()
   }, [date])
@@ -71,7 +74,9 @@ export default function AdminAttendance() {
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-44" />
       </div>
 
-      {sessions.length === 0 ? (
+      {!loaded ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Loading...</CardContent></Card>
+      ) : sessions.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No sessions on this date</CardContent></Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-3">

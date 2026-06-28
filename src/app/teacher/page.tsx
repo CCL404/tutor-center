@@ -11,10 +11,12 @@ export default function TeacherDashboard() {
   const { profile } = useAuth()
   const [stats, setStats] = useState({ todaySessions: 0, myStudents: 0 })
   const [todaySessions, setTodaySessions] = useState<any[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       if (!profile) return
+      setLoaded(false)
       const today = format(new Date(), 'yyyy-MM-dd')
       const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
       if (!teachers?.[0]) return
@@ -31,6 +33,7 @@ export default function TeacherDashboard() {
         todaySessions: sessions?.length ?? 0,
         myStudents: studentSet.size,
       })
+      setLoaded(true)
     }
     load()
   }, [profile])
@@ -58,7 +61,9 @@ export default function TeacherDashboard() {
       <Card>
         <CardHeader><CardTitle className="text-lg">Today's Sessions</CardTitle></CardHeader>
         <CardContent>
-          {todaySessions.length === 0 ? (
+          {!loaded ? (
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          ) : todaySessions.length === 0 ? (
             <p className="text-muted-foreground text-sm">No sessions today</p>
           ) : (
             <div className="space-y-3">

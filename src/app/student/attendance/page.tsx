@@ -9,16 +9,19 @@ import { apiAdmin } from '@/lib/supabase-api'
 export default function StudentAttendance() {
   const { profile } = useAuth()
   const [records, setRecords] = useState<any[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       if (!profile) return
+      setLoaded(false)
       const studentList = await apiAdmin(`students?select=id&user_id=eq.${profile.id}`)
       const student = studentList?.[0]
-      if (!student) return
+      if (!student) { setLoaded(true); return }
 
       const attRecords = await apiAdmin(`attendance?select=*,session:sessions(subject,start_time,end_time,teacher:teachers(profile:profiles(name)))&student_id=eq.${student.id}&order=date.desc`)
       setRecords(attRecords ?? [])
+      setLoaded(true)
     }
     load()
   }, [profile])
@@ -32,7 +35,9 @@ export default function StudentAttendance() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Attendance Records</h1>
-      {records.length === 0 ? (
+      {!loaded ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Loading...</CardContent></Card>
+      ) : records.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No attendance records</CardContent></Card>
       ) : (
         <div className="space-y-3">

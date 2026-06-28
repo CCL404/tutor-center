@@ -18,12 +18,14 @@ export default function TeacherAttendance() {
   const [attendance, setAttendance] = useState<Record<string, string>>({})
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [teacherId, setTeacherId] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       if (!profile) return
+      setLoaded(false)
       const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
-      if (!teachers?.[0]) return
+      if (!teachers?.[0]) { setLoaded(true); return }
       setTeacherId(teachers[0].id)
 
       const data = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&teacher_id=eq.${teachers[0].id}&date=eq.${date}&order=start_time`)
@@ -31,6 +33,7 @@ export default function TeacherAttendance() {
       setSelectedSession(null)
       setStudents([])
       setAttendance({})
+      setLoaded(true)
     }
     load()
   }, [profile, date])
@@ -83,7 +86,9 @@ export default function TeacherAttendance() {
 
       {!teacherId && <Card><CardContent className="p-6 text-center text-muted-foreground">Teacher profile not set up. Please contact admin.</CardContent></Card>}
 
-      {sessions.length === 0 ? (
+      {!loaded ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Loading...</CardContent></Card>
+      ) : sessions.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No sessions on this date</CardContent></Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-3">

@@ -17,8 +17,10 @@ export default function AdminStudents() {
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
   const load = async () => {
+    setLoaded(false)
     const res = await fetch('/api/admin/students')
     const data = await res.json()
     const all = data.students ?? []
@@ -32,6 +34,7 @@ export default function AdminStudents() {
     } else {
       setStudents(all)
     }
+    setLoaded(true)
   }
 
   useEffect(() => { load() }, [search])
@@ -160,13 +163,17 @@ export default function AdminStudents() {
             </Card>
           )
         })}
-        {students.length === 0 && (
+        {!loaded ? (
+          <Card className="col-span-full">
+            <CardContent className="p-6 text-center text-muted-foreground">Loading...</CardContent>
+          </Card>
+        ) : students.length === 0 ? (
           <Card className="col-span-full">
             <CardContent className="p-6 text-center text-muted-foreground">
               {search ? 'No results' : 'No students yet'}
             </CardContent>
           </Card>
-        )}
+        ) : null}
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
