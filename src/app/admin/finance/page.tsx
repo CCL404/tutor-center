@@ -11,31 +11,74 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { getAccessToken, ANON_KEY, SUPABASE_URL } from '@/lib/supabase-api'
 
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbXNxbmRyanJvcmZ3eHp2cmNxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjU1NjA1NywiZXhwIjoyMDk4MTMyMDU3fQ.oesRAH8vpOQRx1Qz6gGfudZFsuYF4zfwb3VZTZtdCdo'
+
 export default function AdminFinance() {
   const [students, setStudents] = useState<any[]>([])
+  const [sessionsMap, setSessionsMap] = useState<Record<string, any[]>>({})
+  const [paymentsMap, setPaymentsMap] = useState<Record<string, number>>({})
   const [payDialog, setPayDialog] = useState<{ student: any; totalDue: number; totalPaid: number } | null>(null)
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
-    const res = await fetch('/api/admin/students')
-    const data = await res.json()
-    setStudents(data.students ?? [])
+    // Get all students
+    const stuRes = await fetch(`${SUPABASE_URL}/rest/v1/students?select=id,user_id,notes`, {
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+    })
+    const stuData = stuRes.ok ? await stuRes.json() : []
+    const userIds = stuData.map((s: any) => s.user_id).filter(Boolean)
+
+    // Get profiles
+    const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`, {
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+    })
+    const profiles = profRes.ok ? await profRes.json() : []
+    const profileMap: Record<string, any> = {}
+    profiles.forEach((p: any) => { profileMap[p.id] = p })
+
+    // For each student, get enrolled sessions with prices
+    const ssMap: Record<string, any[]> = {}
+    const payMap: Record<string, number> = {}
+
+    await Promise.all(stuData.map(async (s: any) => {
+      const sid = s.id
+
+      // Enrolled sessions
+      const ssRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}&order=session.date.desc,session.start_time.desc`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      )
+      const enrolled = ssRes.ok ? await ssRes.json() : []
+      ssMap[sid] = enrolled.map((e: any) => ({
+        id: e.session?.id,
+        date: e.session?.date,
+        subject: e.session?.subject,
+        start_time: e.session?.start_time,
+        price: e.price || 0,
+      }))
+
+      // Payments
+      const payRes = await fetch(`${SUPABASE_URL}/rest/v1/payments?select=amount_paid&student_id=eq.${sid}`, {
+        headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+      })
+      payMap[sid] = payRes.ok
+        ? (await payRes.json()).reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0)
+        : 0
+    }))
+
+    setStudents(stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] ?? null })))
+    setSessionsMap(ssMap)
+    setPaymentsMap(payMap)
   }
 
   useEffect(() => { load() }, [])
 
-  const totals = students.reduce(
-    (acc, s) => {
-      const st = s.stats || { totalDue: 0, totalPaid: 0, outstanding: 0 }
-      return {
-        totalDue: acc.totalDue + st.totalDue,
-        totalPaid: acc.totalPaid + st.totalPaid,
-        outstanding: acc.outstanding + st.outstanding,
-      }
-    },
-    { totalDue: 0, totalPaid: 0, outstanding: 0 }
-  )
-
+  const getStudentStats = (s: any) => {
+    const sessions = sessionsMap[s.id] || []
+    const totalDue = sessions.reduce((sum: number, ss: any) => sum + (ss.price || 0), 0)
+    const totalPaid = paymentsMap[s.id] || 0
+    return { sessions, totalDue, totalPaid, outstanding: totalDue - totalPaid }
+  }
   const recordPayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!payDialog) return
@@ -66,14 +109,14 @@ export default function AdminFinance() {
 
       {/* Summary cards */}
       <div className="grid gap-4 grid-cols-3">
-        <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Total Due</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className="text-2xl font-bold">${totals.totalDue.toFixed(2)}</p></CardContent></Card>
-        <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className="text-2xl font-bold text-green-600">${totals.totalPaid.toFixed(2)}</p></CardContent></Card>
-        <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className={`text-2xl font-bold ${totals.outstanding > 0 ? 'text-red-600' : ''}`}>${totals.outstanding.toFixed(2)}</p></CardContent></Card>
+        <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Total Due</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className="text-2xl font-bold">${students.reduce((s, stu) => s + getStudentStats(stu).totalDue, 0).toFixed(2)}</p></CardContent></Card>
+        <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className="text-2xl font-bold text-green-600">${students.reduce((s, stu) => s + getStudentStats(stu).totalPaid, 0).toFixed(2)}</p></CardContent></Card>
+        <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className={`text-2xl font-bold ${students.reduce((s, stu) => s + getStudentStats(stu).outstanding, 0) > 0 ? 'text-red-600' : ''}`}>${students.reduce((s, stu) => s + getStudentStats(stu).outstanding, 0).toFixed(2)}</p></CardContent></Card>
       </div>
 
       {/* Per-student breakdown */}
       {students.map((s) => {
-        const st = s.stats || { totalDue: 0, totalPaid: 0, outstanding: 0 }
+        const st = getStudentStats(s)
         return (
           <Card key={s.id}>
             <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
@@ -98,10 +141,10 @@ export default function AdminFinance() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(s.sessions ?? []).length === 0 ? (
+                  {(st.sessions ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-4">No sessions enrolled</TableCell></TableRow>
                   ) : (
-                    (s.sessions ?? []).map((ss: any) => (
+                    (st.sessions ?? []).map((ss: any) => (
                       <TableRow key={ss.id}>
                         <TableCell>{ss.date ? format(new Date(ss.date + 'T00:00:00'), 'yyyy/M/d') : '-'}</TableCell>
                         <TableCell>{ss.subject}</TableCell>

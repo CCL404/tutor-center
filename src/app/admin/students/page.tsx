@@ -114,7 +114,6 @@ export default function AdminStudents() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {students.map((s) => {
-          const st = s.stats || { totalSessions: 0, attended: 0, totalDue: 0, totalPaid: 0, outstanding: 0 }
           return (
             <Card key={s.id}>
               <CardContent className="p-4 space-y-3">
@@ -124,12 +123,6 @@ export default function AdminStudents() {
                 </div>
                 {s.profile?.phone && <p className="text-xs text-muted-foreground">Phone: {s.profile.phone}</p>}
                 {s.notes && <p className="text-xs text-muted-foreground italic">Notes: {s.notes}</p>}
-                <div className="flex gap-3 text-xs pt-1 border-t">
-                  <span>📚 {st.attended}/{st.totalSessions} classes</span>
-                  <span className={st.outstanding > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
-                    ${st.outstanding.toFixed(2)} outstanding
-                  </span>
-                </div>
                 <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}>Edit Notes</Button>
               </CardContent>
             </Card>
