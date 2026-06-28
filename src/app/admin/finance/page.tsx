@@ -83,8 +83,7 @@ export default function AdminFinance() {
     return { sessions, totalDue, totalPaid, outstanding: totalDue - totalPaid }
   }
 
-  const toggleStatus = async (studentId: string, sessionId: string, currentStatus: string, attId: string | null) => {
-    const newStatus = currentStatus === 'present' ? 'absent' : 'present'
+  const setStatus = async (studentId: string, sessionId: string, newStatus: string, attId: string | null) => {
     if (attId) {
       const ok = await apiAdminPatch(`attendance?id=eq.${attId}`, { status: newStatus })
       if (!ok) { toast.error('Failed to update status'); return }
@@ -198,18 +197,21 @@ export default function AdminFinance() {
                             <TableCell>{ss.date ? format(new Date(ss.date + 'T00:00:00'), 'yyyy/M/d') : '-'}</TableCell>
                             <TableCell>{ss.subject}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => toggleStatus(s.id, ss.id, ss.status, ss.attId)}
-                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer border ${
-                                    ss.status === 'present'
-                                      ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
-                                      : 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200'
-                                  }`}
-                                >
-                                  {ss.status === 'present' ? 'Present' : 'Absent'}
-                                </button>
-                              </div>
+                              <select
+                                value={ss.status}
+                                onChange={(e) => setStatus(s.id, ss.id, e.target.value, ss.attId)}
+                                className={`text-xs rounded border px-1.5 py-0.5 cursor-pointer ${
+                                  ss.status === 'present'
+                                    ? 'bg-green-100 text-green-800 border-green-300'
+                                    : ss.status === 'absent'
+                                    ? 'bg-red-100 text-red-800 border-red-300'
+                                    : 'bg-blue-100 text-blue-800 border-blue-300'
+                                }`}
+                              >
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                                <option value="makeup">Make-up</option>
+                              </select>
                             </TableCell>
                             <TableCell>
                               <EditablePrice
