@@ -148,7 +148,7 @@ export default function AdminFinance() {
         <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className={`text-2xl font-bold ${students.reduce((s, stu) => s + getStudentStats(stu).outstanding, 0) > 0 ? 'text-red-600' : ''}`}>${students.reduce((s, stu) => s + getStudentStats(stu).outstanding, 0).toFixed(2)}</p></CardContent></Card>
       </div>
 
-      {students.map((s) => {
+      {students.filter(s => (sessionsMap[s.id] || []).length > 0).map((s) => {
         const st = getStudentStats(s)
         return (
           <Card key={s.id}>
@@ -218,7 +218,7 @@ export default function AdminFinance() {
         )
       })}
 
-      {students.length === 0 && (
+      {students.filter(s => (sessionsMap[s.id] || []).length > 0).length === 0 && (
         <Card><CardContent className="p-6 text-center text-muted-foreground">No students found</CardContent></Card>
       )}
 
