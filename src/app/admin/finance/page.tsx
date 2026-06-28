@@ -83,7 +83,7 @@ export default function AdminFinance() {
     return { sessions, totalDue, totalPaid, outstanding: Math.max(0, totalDue - totalPaid) }
   }
 
-  const setStatus = async (studentId: string, sessionId: string, newStatus: string, attId: string | null) => {
+  const setStatus = async (studentId: string, sessionId: string, sessionDate: string, newStatus: string, attId: string | null) => {
     if (attId) {
       const ok = await apiAdminPatch(`attendance?id=eq.${attId}`, { status: newStatus })
       if (!ok) { toast.error('Failed to update status'); return }
@@ -91,7 +91,7 @@ export default function AdminFinance() {
       const ok = await apiAdminPost('attendance', {
         student_id: studentId,
         session_id: sessionId,
-        date: new Date().toISOString().split('T')[0],
+        date: sessionDate,
         status: newStatus,
       })
       if (!ok) { toast.error('Failed to create attendance'); return }
@@ -199,7 +199,7 @@ export default function AdminFinance() {
                             <TableCell>
                               <select
                                 value={ss.status}
-                                onChange={(e) => setStatus(s.id, ss.id, e.target.value, ss.attId)}
+                                onChange={(e) => setStatus(s.id, ss.id, ss.date, e.target.value, ss.attId)}
                                 className={`text-xs rounded border px-1.5 py-0.5 cursor-pointer ${
                                   ss.status === 'present'
                                     ? 'bg-green-100 text-green-800 border-green-300'
