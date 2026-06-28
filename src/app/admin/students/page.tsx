@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { Plus, Search } from 'lucide-react'
-import { apiPatch } from '@/lib/supabase-api'
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([])
@@ -63,14 +62,28 @@ export default function AdminStudents() {
     load()
   }
 
-  const saveNotes = async (e: React.FormEvent<HTMLFormElement>) => {
+  const saveEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setSaving(true)
     const form = new FormData(e.currentTarget)
-    const ok = await apiPatch(`students?id=eq.${editing.id}`, { notes: form.get('notes') as string })
-    if (!ok) { toast.error('Update failed'); return }
-    toast.success('Updated')
+    const res = await fetch('/api/admin/update-student', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId: editing.id,
+        userId: editing.user_id,
+        name: form.get('name') as string,
+        email: form.get('email') as string,
+        phone: form.get('phone') as string || null,
+        notes: form.get('notes') as string || null,
+      }),
+    })
+    const result = await res.json()
+    if (!res.ok) { toast.error(result.error || 'Update failed'); setSaving(false); return }
+    toast.success('Student updated')
     setEditOpen(false)
     setEditing(null)
+    setSaving(false)
     load()
   }
 
@@ -123,7 +136,7 @@ export default function AdminStudents() {
                 </div>
                 {s.profile?.phone && <p className="text-xs text-muted-foreground">Phone: {s.profile.phone}</p>}
                 {s.notes && <p className="text-xs text-muted-foreground italic">Notes: {s.notes}</p>}
-                <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}>Edit Notes</Button>
+                <Button variant="outline" size="sm" onClick={() => { setEditing(s); setEditOpen(true) }}>Edit</Button>
               </CardContent>
             </Card>
           )
@@ -139,19 +152,27 @@ export default function AdminStudents() {
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Edit Student Notes</DialogTitle></DialogHeader>
-          <form onSubmit={saveNotes} className="space-y-4">
+          <DialogHeader><DialogTitle>Edit Student — {editing?.profile?.name}</DialogTitle></DialogHeader>
+          <form onSubmit={saveEdit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Name</Label>
-              <p className="text-sm">{editing?.profile?.name}</p>
+              <Label htmlFor="edit-name">Name</Label>
+              <Input id="edit-name" name="name" defaultValue={editing?.profile?.name ?? ''} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Input id="notes" name="notes" defaultValue={editing?.notes ?? ''} placeholder="Special needs, notes..." />
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" name="email" type="email" defaultValue={editing?.profile?.email ?? ''} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input id="edit-phone" name="phone" type="tel" defaultValue={editing?.profile?.phone ?? ''} placeholder="+61 4XX XXX XXX" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Input id="edit-notes" name="notes" defaultValue={editing?.notes ?? ''} placeholder="Special needs, notes..." />
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
             </div>
           </form>
         </DialogContent>
