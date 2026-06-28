@@ -29,7 +29,7 @@ export default function StudentAttendance() {
   const statusLabel: Record<string, { label: string; color: string }> = {
     present: { label: 'Present', color: 'bg-green-100 text-green-800' },
     absent: { label: 'Absent', color: 'bg-red-100 text-red-800' },
-    makeup: { label: 'Make-up', color: 'bg-blue-100 text-blue-800' },
+    pending: { label: 'Pending', color: 'bg-amber-100 text-amber-800' },
   }
 
   return (

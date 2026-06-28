@@ -40,7 +40,7 @@ export default function StudentFinance() {
         subject: e.session?.subject,
         start_time: e.session?.start_time,
         price: e.price || 0,
-        status: statusMap[e.session?.id] || 'absent',
+        status: statusMap[e.session?.id] || 'pending',
       }))
       .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
     )
@@ -101,9 +101,10 @@ export default function StudentFinance() {
                     <TableCell>{ss.subject}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        ss.status === 'present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        ss.status === 'present' ? 'bg-green-100 text-green-800' : 
+                        ss.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {ss.status === 'present' ? 'Present' : 'Absent'}
+                        {ss.status === 'present' ? 'Present' : ss.status === 'pending' ? 'Pending' : 'Absent'}
                       </span>
                     </TableCell>
                     <TableCell>${(ss.price || 0).toFixed(2)}</TableCell>

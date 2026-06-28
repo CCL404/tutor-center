@@ -59,7 +59,7 @@ export default function AdminFinance() {
           subject: e.session?.subject,
           start_time: e.session?.start_time,
           price: e.price || 0,
-          status: statusMap[e.session?.id] || 'absent',
+          status: statusMap[e.session?.id] || 'pending',
           attId: attIdMap[e.session?.id] || null,
         }))
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
@@ -205,12 +205,12 @@ export default function AdminFinance() {
                                     ? 'bg-green-100 text-green-800 border-green-300'
                                     : ss.status === 'absent'
                                     ? 'bg-red-100 text-red-800 border-red-300'
-                                    : 'bg-blue-100 text-blue-800 border-blue-300'
+                                    : 'bg-amber-100 text-amber-800 border-amber-300'
                                 }`}
                               >
                                 <option value="present">Present</option>
                                 <option value="absent">Absent</option>
-                                <option value="makeup">Make-up</option>
+                                <option value="pending">Pending</option>
                               </select>
                             </TableCell>
                             <TableCell>
