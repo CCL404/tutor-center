@@ -45,7 +45,7 @@ export default function StudentFinance() {
       .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
     )
 
-    const payments = (await apiAdmin(`payments?select=amount_paid,paid_at,notes&student_id=eq.${student.id}&order=created_at.desc`)) ?? []
+    const payments = (await apiAdmin(`payments?select=amount_paid,paid_at,notes&student_id=eq.${student.id}&paid_at=gte.${monthStart}&paid_at=lt.${monthEnd}&order=created_at.desc`)) ?? []
     setTotalPaid(payments.reduce((s: number, p: any) => s + (p.amount_paid || 0), 0))
     setLoaded(true)
   }, [profile, monthStr])

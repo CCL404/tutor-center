@@ -61,7 +61,7 @@ export default function AdminFinance() {
         }))
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
 
-      const pays = (await apiAdmin(`payments?select=amount_paid&student_id=eq.${sid}`)) ?? []
+      const pays = (await apiAdmin(`payments?select=amount_paid&student_id=eq.${sid}&paid_at=gte.${monthStart}&paid_at=lt.${monthEnd}`)) ?? []
       payMap[sid] = pays.reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0)
     }))
 
