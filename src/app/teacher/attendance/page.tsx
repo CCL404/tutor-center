@@ -62,7 +62,6 @@ export default function TeacherAttendance() {
     setAttendance(attMap)
     setStudentsLoading(false)
   }
-  }
 
   const setStatusLocal = async (studentId: string, status: string) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }))
