@@ -115,18 +115,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">📚 狀元軒</CardTitle>
-          <CardDescription>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-muted/40 p-4">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/[0.03] blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-primary/[0.02] blur-3xl" />
+      </div>
+      <Card className="w-full max-w-md relative">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-2 w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-2xl">
+            📚
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight">狀元軒</CardTitle>
+          <CardDescription className="text-sm">
             {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -134,10 +141,11 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
+                className="h-10"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-medium text-muted-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -146,55 +154,52 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
+                className="h-10"
               />
             </div>
             {mode === 'signup' && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Display Name</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex Wang" required />
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs font-medium text-muted-foreground">Display Name</Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Alex Wang" required className="h-10" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Role</Label>
                   <div className="flex gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="role" value="student" checked={role === 'student'} onChange={() => setRole('student')} />
-                      <span className="text-sm">Student</span>
+                    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${role === 'student' ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-muted-foreground/30'}`}>
+                      <input type="radio" name="role" value="student" checked={role === 'student'} onChange={() => setRole('student')} className="sr-only" />
+                      <span>🎓 Student</span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={() => setRole('teacher')} />
-                      <span className="text-sm">Teacher</span>
+                    <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-sm ${role === 'teacher' ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-muted-foreground/30'}`}>
+                      <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={() => setRole('teacher')} className="sr-only" />
+                      <span>👨‍🏫 Teacher</span>
                     </label>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inviteCode">Invite Code</Label>
-                  <Input id="inviteCode" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} placeholder="AB12CD34" required />
+                <div className="space-y-1.5">
+                  <Label htmlFor="inviteCode" className="text-xs font-medium text-muted-foreground">Invite Code</Label>
+                  <Input id="inviteCode" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} placeholder="AB12CD34" required className="h-10 font-mono tracking-widest text-center uppercase" />
                   <p className="text-xs text-muted-foreground">Ask your admin for an invite code</p>
                 </div>
               </>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
+            <Button type="submit" className="w-full h-10 rounded-lg" disabled={loading}>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                  Signing in...
+                </span>
+              ) : mode === 'login' ? 'Sign In' : 'Sign Up'}
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            {mode === 'login' ? (
-              <button
-                onClick={() => setMode('signup')}
-                className="underline hover:text-primary"
-              >
-                No account? Sign up
-              </button>
-            ) : (
-              <button
-                onClick={() => setMode('login')}
-                className="underline hover:text-primary"
-              >
-                Already have an account? Sign in
-              </button>
-            )}
+          <div className="mt-5 text-center text-sm">
+            <button
+              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              className="text-muted-foreground hover:text-primary transition-colors underline underline-offset-4 decoration-muted-foreground/30 hover:decoration-primary/50"
+            >
+              {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </button>
           </div>
         </CardContent>
       </Card>
