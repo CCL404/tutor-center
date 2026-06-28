@@ -39,7 +39,7 @@ export default function StudentFinance() {
           price: e.price || 0,
         }))
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
-      ))
+      )
 
       // Get payments made
       const payRes = await fetch(`${SUPABASE_URL}/rest/v1/payments?select=amount_paid,paid_at,notes&student_id=eq.${student.id}&order=created_at.desc`, {
