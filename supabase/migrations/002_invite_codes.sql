@@ -16,3 +16,5 @@ create policy "Admin full access - invite_codes" on public.invite_codes
 
 create policy "Anyone can read codes for validation" on public.invite_codes
   for select using (true);
+
+grant all on public.invite_codes to anon, authenticated, service_role;
