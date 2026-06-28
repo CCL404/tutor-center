@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { apiGet } from '@/lib/supabase-api'
+import { apiAdmin } from '@/lib/supabase-api'
 
 export default function StudentDashboard() {
   const { profile } = useAuth()
@@ -15,18 +15,18 @@ export default function StudentDashboard() {
     const load = async () => {
       if (!profile) return
       setLoaded(false)
-      const students = await apiGet(`students?select=id&user_id=eq.${profile.id}`)
+      const students = await apiAdmin(`students?select=id&user_id=eq.${profile.id}`)
       if (!students?.[0]) { setLoaded(true); return }
 
       const now = new Date()
       const today = now.toISOString().slice(0, 10)
       const time = now.toTimeString().slice(0, 5)
 
-      const sessionIds = await apiGet(`session_students?select=session_id&student_id=eq.${students[0].id}`)
+      const sessionIds = await apiAdmin(`session_students?select=session_id&student_id=eq.${students[0].id}`)
       if (!sessionIds?.length) { setLoaded(true); return }
 
       const ids = sessionIds.map((s: any) => s.session_id)
-      const sessions = await apiGet(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&id=in.(${ids.join(',')})&or=(date.gt.${today},and(date.eq.${today},start_time.gte.${time}))&order=date.asc,start_time.asc&limit=10`)
+      const sessions = await apiAdmin(`sessions?select=*,teacher:teachers(id,color,subjects,profile:profiles(name))&id=in.(${ids.join(',')})&or=(date.gt.${today},and(date.eq.${today},start_time.gte.${time}))&order=date.asc,start_time.asc&limit=10`)
 
       setUpcoming(sessions ?? [])
       setLoaded(true)
