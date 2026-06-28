@@ -43,7 +43,7 @@ export default function TeacherSchedule() {
     }
 
     const [sessData, stuRes] = await Promise.all([
-      apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date&order=start_time`),
+      apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date.asc&order=start_time.asc`),
       fetch('/api/admin/students').then(r => r.json()),
     ])
 
@@ -130,6 +130,13 @@ export default function TeacherSchedule() {
   const studentMap: Record<string, string> = {}
   students.forEach((s: any) => { if (s.profile?.name) studentMap[s.id] = s.profile.name })
 
+  const fmtTime = (t: string) => {
+    if (!t) return ''
+    const [h, m] = t.split(':').map(Number)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+  }
+
   const byDay = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(weekStart, i)
     return { label: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i], dateStr: format(date, 'yyyy-MM-dd'), sessions: sessions.filter(s => s.date === format(date, 'yyyy-MM-dd')) }
@@ -197,7 +204,7 @@ export default function TeacherSchedule() {
                 <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => openEdit(s)}>
                   <div className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.teacher?.color ?? '#6366f1' }} />
-                    <span className="font-medium">{s.start_time?.slice(0, 5)}</span>
+                    <span className="font-medium">{fmtTime(s.start_time)}</span>
                   </div>
                   <p className="font-medium">{s.subject}</p>
                   <p className="text-muted-foreground">{s.teacher?.profile?.name}</p>
