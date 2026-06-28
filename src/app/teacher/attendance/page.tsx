@@ -18,6 +18,7 @@ export default function TeacherAttendance() {
   const [attendance, setAttendance] = useState<Record<string, string>>({})
   const [dirty, setDirty] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
+  const [studentsLoading, setStudentsLoading] = useState(false)
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [teacherId, setTeacherId] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -46,6 +47,7 @@ export default function TeacherAttendance() {
     setStudents([])
     setAttendance({})
     setDirty(new Set())
+    setStudentsLoading(true)
 
     const stuRes = await fetch(`/api/attendance/session-students?sessionId=${session.id}`)
     const stuData = await stuRes.json()
@@ -55,6 +57,8 @@ export default function TeacherAttendance() {
     const attMap: Record<string, string> = {}
     att?.forEach((a: any) => { attMap[a.student_id] = a.status })
     setAttendance(attMap)
+    setStudentsLoading(false)
+  }
   }
 
   const setStatusLocal = async (studentId: string, status: string) => {
@@ -155,7 +159,11 @@ export default function TeacherAttendance() {
             </div>
           </CardHeader>
           <CardContent>
-            {students.length === 0 ? (
+            {studentsLoading ? (
+              <div className="text-center text-muted-foreground text-sm py-4">
+                <span className="inline-block animate-pulse">Loading students...</span>
+              </div>
+            ) : students.length === 0 ? (
               <p className="text-muted-foreground text-sm">No students enrolled in this session</p>
             ) : (
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
