@@ -53,7 +53,7 @@ export default function StudentFinance() {
   useEffect(() => { load() }, [load])
 
   const totalDue = sessions.filter(ss => ss.status === 'present').reduce((s, ss) => s + (ss.price || 0), 0)
-  const outstanding = totalDue - totalPaid
+  const outstanding = Math.max(0, totalDue - totalPaid)
 
   if (!loaded) return <div className="p-6 text-center text-muted-foreground">Loading...</div>
 

@@ -80,7 +80,7 @@ export default function AdminFinance() {
     const sessions = sessionsMap[s.id] || []
     const totalDue = sessions.filter(ss => ss.status === 'present').reduce((sum: number, ss: any) => sum + (ss.price || 0), 0)
     const totalPaid = paymentsMap[s.id] || 0
-    return { sessions, totalDue, totalPaid, outstanding: totalDue - totalPaid }
+    return { sessions, totalDue, totalPaid, outstanding: Math.max(0, totalDue - totalPaid) }
   }
 
   const setStatus = async (studentId: string, sessionId: string, newStatus: string, attId: string | null) => {
