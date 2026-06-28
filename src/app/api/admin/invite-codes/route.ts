@@ -47,3 +47,18 @@ export async function POST(req: NextRequest) {
   const newCode = await res.json()
   return NextResponse.json({ code: newCode?.[0] || newCode })
 }
+
+// Delete invite code
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/invite_codes?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+  })
+
+  if (!res.ok) return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
+  return NextResponse.json({ success: true })
+}

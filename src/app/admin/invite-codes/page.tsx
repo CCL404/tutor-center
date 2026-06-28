@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Plus, Copy, RefreshCw } from 'lucide-react'
+import { Plus, Copy, RefreshCw, Trash2 } from 'lucide-react'
 
 export default function InviteCodesPage() {
   const [codes, setCodes] = useState<any[]>([])
@@ -46,6 +46,13 @@ export default function InviteCodesPage() {
 
   const isExpired = (code: any) => code.expires_at && new Date(code.expires_at) < new Date()
   const isFullyUsed = (code: any) => code.used_count >= code.max_uses
+
+  const remove = async (id: string) => {
+    const res = await fetch(`/api/admin/invite-codes?id=${id}`, { method: 'DELETE' })
+    if (!res.ok) { toast.error('Delete failed'); return }
+    toast.success('Code deleted')
+    load()
+  }
 
   return (
     <div className="space-y-6">
@@ -113,6 +120,9 @@ export default function InviteCodesPage() {
                     {c.created_at && ` · Created ${new Date(c.created_at).toLocaleDateString()}`}
                   </p>
                 </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => remove(c.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </CardContent>
             </Card>
           ))}
