@@ -208,9 +208,16 @@ export default function AdminSchedule() {
                   })}
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button type="submit">Save</Button>
+              <div className="flex items-center justify-between">
+                {editing && (
+                  <Button type="button" variant="destructive" size="sm" onClick={() => { remove(editing.id); setOpen(false) }}>
+                    Delete Session
+                  </Button>
+                )}
+                <div className="flex gap-2 ml-auto">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit">Save</Button>
+                </div>
               </div>
             </form>
           </DialogContent>
@@ -235,7 +242,6 @@ export default function AdminSchedule() {
                     <p className="text-muted-foreground truncate">
                       {(s.session_students ?? []).map((ss: any) => studentMap[ss.student_id]).filter(Boolean).join(', ')}
                     </p>
-                    <Badge variant="outline" className="text-[10px] px-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); remove(s.id) }}>Delete</Badge>
                   </div>
                 ))}
               </div>
