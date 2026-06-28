@@ -17,6 +17,7 @@ export default function ProfilePage() {
     e.preventDefault()
     setSaving(true)
     const form = new FormData(e.currentTarget)
+    const newName = form.get('name') as string
     const newEmail = form.get('email') as string
     const newPhone = form.get('phone') as string
     const newPassword = form.get('password') as string
@@ -47,28 +48,32 @@ export default function ProfilePage() {
         }
       }
 
-      // Update phone in profiles table
-      if (newPhone !== profile?.phone) {
-        const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user?.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: ANON_KEY,
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ phone: newPhone || null }),
-        })
-        if (!profRes.ok) {
-          toast.error('Failed to update profile')
-          setSaving(false)
-          return
-        }
+      // Update phone & name in profiles table
+      const profileUpdates: any = { phone: newPhone || null }
+      if (newName !== profile?.name) profileUpdates.name = newName
+
+      const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user?.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: ANON_KEY,
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(profileUpdates),
+      })
+      if (!profRes.ok) {
+        toast.error('Failed to update profile')
+        setSaving(false)
+        return
       }
 
       toast.success('Profile updated')
+
       if (newPassword) {
         toast.info('Password changed — please sign in again')
         signOut()
+      } else {
+        window.location.reload()
       }
     } catch (err) {
       toast.error('Something went wrong')
@@ -84,9 +89,8 @@ export default function ProfilePage() {
         <CardContent>
           <form onSubmit={saveProfile} className="space-y-4">
             <div className="space-y-1">
-              <Label>Name</Label>
-              <Input value={profile?.name ?? ''} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">Name can only be changed by admin</p>
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" defaultValue={profile?.name ?? ''} required />
             </div>
             <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
