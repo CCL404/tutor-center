@@ -53,3 +53,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { path, body, prefer } = await request.json()
+    if (!path) return NextResponse.json({ error: 'path required' }, { status: 400 })
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+    }
+    if (prefer) headers['Prefer'] = prefer
+
+    const url = `${SUPABASE_URL}/rest/v1/${path}`
+    const res = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body) })
+    return NextResponse.json({ ok: res.ok, error: res.ok ? null : `${res.status}: ${res.statusText}` })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}

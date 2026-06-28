@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
-import { getAccessToken, ANON_KEY, SUPABASE_URL, apiAdmin } from '@/lib/supabase-api'
+import { format, addMonths, subMonths } from 'date-fns'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { getAccessToken, ANON_KEY, SUPABASE_URL, apiAdmin, apiAdminPost, apiAdminPatch } from '@/lib/supabase-api'
 
 export default function AdminFinance() {
   const [students, setStudents] = useState<any[]>([])
@@ -17,47 +18,50 @@ export default function AdminFinance() {
   const [paymentsMap, setPaymentsMap] = useState<Record<string, number>>({})
   const [payDialog, setPayDialog] = useState<{ student: any; totalDue: number; totalPaid: number } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [month, setMonth] = useState(new Date())
+  const monthStr = format(month, 'yyyy-MM')
 
-  const load = async () => {
-    // Get all students
+  const load = useCallback(async () => {
     const stuData = (await apiAdmin('students?select=id,user_id,notes&order=created_at.desc')) ?? []
     const userIds = stuData.map((s: any) => s.user_id).filter(Boolean)
-
-    // Get profiles
     const profiles = userIds.length > 0 ? (await apiAdmin(`profiles?select=id,name,email,phone&id=in.(${userIds.join(',')})`)) ?? [] : []
     const profileMap: Record<string, any> = {}
     profiles.forEach((p: any) => { profileMap[p.id] = p })
 
-    // For each student, get enrolled sessions with prices
     const ssMap: Record<string, any[]> = {}
     const payMap: Record<string, number> = {}
+    const monthStart = `${monthStr}-01`
+    const monthEnd = format(addMonths(month, 1), 'yyyy-MM-dd')
 
     await Promise.all(stuData.map(async (s: any) => {
       const sid = s.id
 
-      // Get all enrolled sessions with prices
-      const enrolled = (await apiAdmin(`session_students?select=price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}`)) ?? []
+      // All enrolled sessions (no attendance filter)
+      const enrolled = (await apiAdmin(`session_students?select=id,price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}&session.date=gte.${monthStart}&session.date=lt.${monthEnd}`)) ?? []
 
-      // Get attendance records
-      const attendanceRecords = (await apiAdmin(`attendance?select=session_id,date,status&student_id=eq.${sid}`)) ?? []
-      const attendedSessionIds = new Set(attendanceRecords.filter((a: any) => a.status === 'present').map((a: any) => a.session_id))
+      // Attendance for this student
+      const attendanceRecords = (await apiAdmin(`attendance?select=id,session_id,status&student_id=eq.${sid}&date=gte.${monthStart}&date=lt.${monthEnd}`)) ?? []
       const statusMap: Record<string, string> = {}
-      attendanceRecords.forEach((a: any) => { statusMap[a.session_id] = a.status })
+      const attIdMap: Record<string, string> = {}
+      attendanceRecords.forEach((a: any) => {
+        statusMap[a.session_id] = a.status
+        attIdMap[a.session_id] = a.id
+      })
 
-      // Only include sessions that have attendance marked
       ssMap[sid] = enrolled
-        .filter((e: any) => attendedSessionIds.has(e.session?.id))
+        .filter((e: any) => e.session) // only if session exists
         .map((e: any) => ({
           id: e.session?.id,
+          ssId: e.id,
           date: e.session?.date,
           subject: e.session?.subject,
           start_time: e.session?.start_time,
           price: e.price || 0,
-          status: statusMap[e.session?.id] || '',
+          status: statusMap[e.session?.id] || 'absent',
+          attId: attIdMap[e.session?.id] || null,
         }))
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
 
-      // Payments
       const pays = (await apiAdmin(`payments?select=amount_paid&student_id=eq.${sid}`)) ?? []
       payMap[sid] = pays.reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0)
     }))
@@ -65,16 +69,42 @@ export default function AdminFinance() {
     setStudents(stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] ?? null })))
     setSessionsMap(ssMap)
     setPaymentsMap(payMap)
-  }
+  }, [monthStr])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
   const getStudentStats = (s: any) => {
     const sessions = sessionsMap[s.id] || []
-    const totalDue = sessions.reduce((sum: number, ss: any) => sum + (ss.price || 0), 0)
+    const totalDue = sessions.filter(ss => ss.status === 'present').reduce((sum: number, ss: any) => sum + (ss.price || 0), 0)
     const totalPaid = paymentsMap[s.id] || 0
     return { sessions, totalDue, totalPaid, outstanding: totalDue - totalPaid }
   }
+
+  const toggleStatus = async (studentId: string, sessionId: string, currentStatus: string, attId: string | null) => {
+    const newStatus = currentStatus === 'present' ? 'absent' : 'present'
+    if (attId) {
+      const ok = await apiAdminPatch(`attendance?id=eq.${attId}`, { status: newStatus })
+      if (!ok) { toast.error('Failed to update status'); return }
+    } else {
+      const ok = await apiAdminPost('attendance', {
+        student_id: studentId,
+        session_id: sessionId,
+        date: new Date().toISOString().split('T')[0],
+        status: newStatus,
+      })
+      if (!ok) { toast.error('Failed to create attendance'); return }
+    }
+    toast.success(`Marked ${newStatus}`)
+    load()
+  }
+
+  const updatePrice = async (ssId: string, price: number) => {
+    const ok = await apiAdminPatch(`session_students?id=eq.${ssId}`, { price })
+    if (!ok) { toast.error('Failed to update price'); return }
+    toast.success('Price updated')
+    load()
+  }
+
   const recordPayment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!payDialog) return
@@ -101,16 +131,25 @@ export default function AdminFinance() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Finance</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Finance</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setMonth(subMonths(month, 1))}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium min-w-[120px] text-center">{format(month, 'MMMM yyyy')}</span>
+          <Button variant="outline" size="sm" onClick={() => setMonth(addMonths(month, 1))}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-      {/* Summary cards */}
       <div className="grid gap-4 grid-cols-3">
         <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Total Due</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className="text-2xl font-bold">${students.reduce((s, stu) => s + getStudentStats(stu).totalDue, 0).toFixed(2)}</p></CardContent></Card>
         <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Total Paid</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className="text-2xl font-bold text-green-600">${students.reduce((s, stu) => s + getStudentStats(stu).totalPaid, 0).toFixed(2)}</p></CardContent></Card>
         <Card><CardHeader className="p-4 pb-2"><CardTitle className="text-sm text-muted-foreground">Outstanding</CardTitle></CardHeader><CardContent className="p-4 pt-0"><p className={`text-2xl font-bold ${students.reduce((s, stu) => s + getStudentStats(stu).outstanding, 0) > 0 ? 'text-red-600' : ''}`}>${students.reduce((s, stu) => s + getStudentStats(stu).outstanding, 0).toFixed(2)}</p></CardContent></Card>
       </div>
 
-      {/* Per-student breakdown */}
       {students.map((s) => {
         const st = getStudentStats(s)
         return (
@@ -139,20 +178,33 @@ export default function AdminFinance() {
                 </TableHeader>
                 <TableBody>
                   {(st.sessions ?? []).length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-4">No sessions enrolled</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-4">No sessions this month</TableCell></TableRow>
                   ) : (
                     (st.sessions ?? []).map((ss: any) => (
-                      <TableRow key={ss.id}>
+                      <TableRow key={ss.id} className={ss.status !== 'present' ? 'opacity-60' : ''}>
                         <TableCell>{ss.date ? format(new Date(ss.date + 'T00:00:00'), 'yyyy/M/d') : '-'}</TableCell>
                         <TableCell>{ss.subject}</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            ss.status === 'present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {ss.status === 'present' ? 'Present' : 'Absent'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleStatus(s.id, ss.id, ss.status, ss.attId)}
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer border ${
+                                ss.status === 'present'
+                                  ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
+                                  : 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200'
+                              }`}
+                            >
+                              {ss.status === 'present' ? 'Present' : 'Absent'}
+                            </button>
+                          </div>
                         </TableCell>
-                        <TableCell>${(ss.price || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <EditablePrice
+                            value={ss.price}
+                            ssId={ss.ssId}
+                            onSave={updatePrice}
+                          />
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -175,9 +227,7 @@ export default function AdminFinance() {
       <Dialog open={!!payDialog} onOpenChange={(v) => { if (!v) setPayDialog(null) }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Record Payment — {payDialog?.student?.profile?.name}
-            </DialogTitle>
+            <DialogTitle>Record Payment — {payDialog?.student?.profile?.name}</DialogTitle>
           </DialogHeader>
           <form onSubmit={recordPayment} className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -199,5 +249,41 @@ export default function AdminFinance() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function EditablePrice({ value, ssId, onSave }: { value: number; ssId: string; onSave: (ssId: string, price: number) => Promise<void> }) {
+  const [editing, setEditing] = useState(false)
+  const [inputVal, setInputVal] = useState(String(value))
+
+  const handleSave = async () => {
+    const num = parseFloat(inputVal)
+    if (isNaN(num) || num < 0) return
+    await onSave(ssId, num)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        type="number"
+        step="0.01"
+        className="w-20 h-7 px-1 text-sm border rounded"
+        value={inputVal}
+        onChange={e => setInputVal(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setInputVal(String(value)); setEditing(false) } }}
+        autoFocus
+      />
+    )
+  }
+
+  return (
+    <span
+      className="cursor-pointer hover:bg-muted px-1 rounded text-sm"
+      onClick={() => { setInputVal(String(value)); setEditing(true) }}
+    >
+      ${(value || 0).toFixed(2)}
+    </span>
   )
 }

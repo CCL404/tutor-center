@@ -106,4 +106,19 @@ export async function apiAdminPost(path: string, body: any, prefer?: string): Pr
   }
 }
 
+// Server-side proxy: PATCH
+export async function apiAdminPatch(path: string, body: any): Promise<boolean> {
+  try {
+    const res = await fetch('/api/supabase', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, body }),
+    })
+    const json = await res.json()
+    return json.ok === true
+  } catch {
+    return false
+  }
+}
+
 export { SUPABASE_URL, ANON_KEY, STORAGE_KEY }
