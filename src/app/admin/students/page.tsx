@@ -16,6 +16,7 @@ export default function AdminStudents() {
   const [addOpen, setAddOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState('')
 
   const load = async () => {
     const res = await fetch('/api/admin/students')
@@ -83,6 +84,24 @@ export default function AdminStudents() {
     toast.success('Student updated')
     setEditOpen(false)
     setEditing(null)
+    setSaving(false)
+    load()
+  }
+
+  const deleteStudent = async () => {
+    if (!editing) return
+    setSaving(true)
+    const res = await fetch('/api/admin/delete-student', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId: editing.id, userId: editing.user_id }),
+    })
+    const result = await res.json()
+    if (!res.ok) { toast.error(result.error || 'Delete failed'); setSaving(false); return }
+    toast.success('Student deleted')
+    setEditOpen(false)
+    setEditing(null)
+    setConfirmDelete('')
     setSaving(false)
     load()
   }
@@ -170,9 +189,26 @@ export default function AdminStudents() {
               <Label htmlFor="edit-notes">Notes</Label>
               <Input id="edit-notes" name="notes" defaultValue={editing?.notes ?? ''} placeholder="Special needs, notes..." />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+            <div className="flex justify-between items-center gap-2">
+              <div>
+                {confirmDelete !== editing?.profile?.email ? (
+                  <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={() => setConfirmDelete(editing?.profile?.email ?? '')}>
+                    Delete Student
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-red-600">Type email to confirm</p>
+                    <Input className="w-40 h-8 text-xs" value={confirmDelete} onChange={e => setConfirmDelete(e.target.value)} placeholder={editing?.profile?.email} />
+                    <Button type="button" variant="destructive" size="sm" disabled={confirmDelete !== editing?.profile?.email || saving} onClick={deleteStudent}>
+                      {saving ? 'Deleting...' : 'Confirm'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => { setEditOpen(false); setConfirmDelete('') }}>Cancel</Button>
+                <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+              </div>
             </div>
           </form>
         </DialogContent>
