@@ -7,9 +7,31 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, role } = await req.json()
+    const { email, name, role, inviteCode } = await req.json()
     if (!email || !role) return NextResponse.json({ error: 'email and role required' }, { status: 400 })
     if (!['teacher', 'student'].includes(role)) return NextResponse.json({ error: 'role must be teacher or student' }, { status: 400 })
+
+    // Consume invite code if provided
+    if (inviteCode) {
+      // First, validate it
+      const validateRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/invite_codes?code=eq.${inviteCode}&select=*`,
+        { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
+      )
+      const codes = await validateRes.json()
+      const inv = codes?.[0]
+      if (!inv) return NextResponse.json({ error: 'Invalid invite code' }, { status: 400 })
+      if (inv.expires_at && new Date(inv.expires_at) < new Date()) return NextResponse.json({ error: 'Invite code expired' }, { status: 400 })
+      if (inv.role !== role) return NextResponse.json({ error: `Wrong role for this code` }, { status: 400 })
+      if (inv.used_count >= inv.max_uses) return NextResponse.json({ error: 'Invite code fully used' }, { status: 400 })
+
+      // Consume it
+      await fetch(`${SUPABASE_URL}/rest/v1/invite_codes?id=eq.${inv.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ used_count: inv.used_count + 1 }),
+      })
+    }
 
     // Find the auth user by email
     const adminRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?filter=email%3D${encodeURIComponent(email)}`, {

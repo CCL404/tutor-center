@@ -61,11 +61,11 @@ async function signUp(email: string, password: string) {
   }
 }
 
-async function completeSignup(email: string, name: string, role: string) {
+async function completeSignup(email: string, name: string, role: string, inviteCode?: string) {
   const res = await fetch('/api/auth/complete-signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name, role }),
+    body: JSON.stringify({ email, name, role, inviteCode }),
   })
   if (!res.ok) {
     const err = await res.json()
@@ -79,6 +79,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [role, setRole] = useState<'student' | 'teacher'>('student')
+  const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<'login' | 'signup'>('login')
 
@@ -101,7 +102,7 @@ export default function LoginPage() {
         setLoading(false)
       } else {
         await signUp(email, password)
-        await completeSignup(email, name, role)
+        await completeSignup(email, name, role, inviteCode)
         toast.success(`${role === 'teacher' ? 'Teacher' : 'Student'} account created! You can now sign in.`)
         setMode('login')
         setLoading(false)
@@ -165,6 +166,11 @@ export default function LoginPage() {
                       <span className="text-sm">Teacher</span>
                     </label>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode">Invite Code</Label>
+                  <Input id="inviteCode" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} placeholder="AB12CD34" required />
+                  <p className="text-xs text-muted-foreground">Ask your admin for an invite code</p>
                 </div>
               </>
             )}

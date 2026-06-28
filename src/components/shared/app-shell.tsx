@@ -24,6 +24,7 @@ import {
   GraduationCap,
   ClipboardCheck,
   UserCog,
+  KeyRound,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -41,6 +42,7 @@ const adminNav: NavItem[] = [
   { label: 'Finance', href: '/admin/finance', icon: <DollarSign className="h-4 w-4" /> },
   { label: 'Notifications', href: '/admin/notifications', icon: <Bell className="h-4 w-4" /> },
   { label: 'Attendance', href: '/admin/attendance', icon: <ClipboardCheck className="h-4 w-4" /> },
+  { label: 'Invite Codes', href: '/admin/invite-codes', icon: <KeyRound className="h-4 w-4" /> },
 ]
 
 const teacherNav: NavItem[] = [
