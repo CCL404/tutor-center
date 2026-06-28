@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CalendarRange, Users, BookOpen, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
-import { apiGet } from '@/lib/supabase-api'
+import { apiAdmin } from '@/lib/supabase-api'
 
 export default function TeacherDashboard() {
   const { profile } = useAuth()
@@ -18,14 +18,14 @@ export default function TeacherDashboard() {
       if (!profile) return
       setLoaded(false)
       const today = format(new Date(), 'yyyy-MM-dd')
-      const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
+      const teachers = await apiAdmin(`teachers?select=id&user_id=eq.${profile.id}`)
       if (!teachers?.[0]) return
       const tid = teachers[0].id
 
-      const sessions = await apiGet(`sessions?select=*,session_students(student:students(id))&teacher_id=eq.${tid}&date=eq.${today}&order=start_time`)
+      const sessions = await apiAdmin(`sessions?select=*,session_students(student:students(id))&teacher_id=eq.${tid}&date=eq.${today}&order=start_time`)
       setTodaySessions(sessions ?? [])
 
-      const allSessions = await apiGet(`sessions?select=id,session_students(student:students(id))&teacher_id=eq.${tid}`)
+      const allSessions = await apiAdmin(`sessions?select=id,session_students(student:students(id))&teacher_id=eq.${tid}`)
       const studentSet = new Set<string>()
       allSessions?.forEach((s: any) => s.session_students?.forEach((ss: any) => studentSet.add(ss.student?.id)))
 
