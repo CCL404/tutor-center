@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { Check, X, RotateCcw } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { apiGet, getAccessToken, ANON_KEY, SUPABASE_URL } from '@/lib/supabase-api'
 
 export default function AdminAttendance() {
@@ -104,7 +104,7 @@ export default function AdminAttendance() {
                   <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <span className="font-medium text-sm">{s.profile?.name ?? 'Unknown'}</span>
                     <div className="flex gap-1">
-                      {(['present', 'absent', 'makeup'] as const).map((status) => (
+                      {(['present', 'absent'] as const).map((status) => (
                         <Button key={status} size="sm"
                           variant={attendance[s.id] === status ? 'default' : 'outline'}
                           className={`h-8 w-8 p-0 ${attendance[s.id] === status
@@ -114,10 +114,8 @@ export default function AdminAttendance() {
                             : ''
                           }`}
                           onClick={() => setStatus(s.id, status)}
-                          title={status === 'present' ? 'Present' : status === 'absent' ? 'Absent' : 'Make-up'}>
-                          {status === 'present' ? <Check className="h-4 w-4" />
-                            : status === 'absent' ? <X className="h-4 w-4" />
-                            : <RotateCcw className="h-4 w-4" />}
+                          title={status === 'present' ? 'Present' : 'Absent'}>
+                          {status === 'present' ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         </Button>
                       ))}
                     </div>
