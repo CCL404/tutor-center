@@ -126,7 +126,7 @@ export default function TeacherAttendance() {
           <p className="text-xs text-muted-foreground/60 -mt-3">Click a session to manage attendance</p>
           <div className="grid gap-3 md:grid-cols-3">
             {sessions.map((s: any) => (
-              <Card key={s.id} className={`cursor-pointer transition-all duration-150 card-hover ${selectedSession?.id === s.id ? 'ring-2 ring-primary shadow-md' : ''}`} onClick={() => loadStudents(s)}>
+              <Card key={s.id} className={`cursor-pointer transition-all duration-150 card-hover ${selectedSession?.id === s.id && studentsLoading ? 'opacity-60' : ''} ${selectedSession?.id === s.id && !studentsLoading ? 'ring-2 ring-primary shadow-md' : ''}`} onClick={() => !studentsLoading && loadStudents(s)}>
                 <CardContent className="p-4 space-y-1">
                   <p className="font-medium">{s.subject}</p>
                   <p className="text-sm text-muted-foreground">{s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}</p>
