@@ -22,7 +22,7 @@ export default function TeacherAttendance() {
 
   useEffect(() => {
     const load = async () => {
-      if (!profile) return
+      if (!profile) { setLoaded(true); return }
       setLoaded(false)
       const teachers = await apiGet(`teachers?select=id&user_id=eq.${profile.id}`)
       if (!teachers?.[0]) { setLoaded(true); return }
