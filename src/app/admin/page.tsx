@@ -59,35 +59,47 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground text-sm">{format(new Date(), 'EEEE, MMM d, yyyy')}</p>
       </div>
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <Card key={card.title}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${card.bg}`}><span className={card.color}>{card.icon}</span></div>
-              <div>
-                <p className="text-xs text-muted-foreground">{card.title}</p>
-                <p className="text-xl font-bold">{card.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <Card>
-        <CardHeader><CardTitle className="text-lg">Today&apos;s Sessions</CardTitle></CardHeader>
-        <CardContent>
-          {!loaded ? (
-            <p className="text-muted-foreground text-sm">Loading...</p>
-          ) : todaySessions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No sessions today</p>
-          ) : (
-            <div className="space-y-3">
-              {todaySessions.map((s) => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border">
+      {!loaded ? (
+        <>
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {[1,2,3,4].map(i => (
+              <Card key={i}><CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gray-100"><div className="h-5 w-5" /></div>
+                <div className="space-y-1"><div className="h-3 w-16 bg-gray-200 rounded animate-pulse" /><div className="h-5 w-12 bg-gray-200 rounded animate-pulse" /></div>
+              </CardContent></Card>
+            ))}
+          </div>
+          <Card><CardContent className="p-6 text-center text-muted-foreground">Loading sessions...</CardContent></Card>
+        </>
+      ) : (
+        <>
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            {statCards.map((card) => (
+              <Card key={card.title}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${card.bg}`}><span className={card.color}>{card.icon}</span></div>
                   <div>
-                    <p className="font-medium">{s.subject}</p>
-                    <p className="text-sm text-muted-foreground">{s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}{s.room && ` · ${s.room}`}</p>
+                    <p className="text-xs text-muted-foreground">{card.title}</p>
+                    <p className="text-xl font-bold">{card.value}</p>
                   </div>
-                  <div className="text-right text-sm">
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Card>
+            <CardHeader><CardTitle className="text-lg">Today&apos;s Sessions</CardTitle></CardHeader>
+            <CardContent>
+              {todaySessions.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No sessions today</p>
+              ) : (
+                <div className="space-y-3">
+                  {todaySessions.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="font-medium">{s.subject}</p>
+                        <p className="text-sm text-muted-foreground">{s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}{s.room && ` · ${s.room}`}</p>
+                      </div>
+                      <div className="text-right text-sm">
                     <p className="font-medium">{s.teacher?.profile?.name ?? 'Unassigned'}</p>
                     <p className="text-muted-foreground">${s.price_per_student}/student</p>
                   </div>
