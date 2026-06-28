@@ -50,13 +50,15 @@ export default function AdminFinance() {
       )
       const enrolled = ssRes.ok ? await ssRes.json() : []
 
-      // Get attendance records — only sessions with attendance count toward fees
+      // Get attendance records — maintain status map
       const attRes = await fetch(
         `${SUPABASE_URL}/rest/v1/attendance?select=session_id,date,status&student_id=eq.${sid}`,
         { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
       )
       const attendanceRecords = attRes.ok ? await attRes.json() : []
       const attendedSessionIds = new Set(attendanceRecords.map((a: any) => a.session_id))
+      const statusMap: Record<string, string> = {}
+      attendanceRecords.forEach((a: any) => { statusMap[a.session_id] = a.status })
 
       // Only include sessions that have attendance marked
       ssMap[sid] = enrolled
@@ -67,6 +69,7 @@ export default function AdminFinance() {
           subject: e.session?.subject,
           start_time: e.session?.start_time,
           price: e.price || 0,
+          status: statusMap[e.session?.id] || '',
         }))
         .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
 
@@ -150,17 +153,25 @@ export default function AdminFinance() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Subject</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Price</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(st.sessions ?? []).length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-4">No sessions enrolled</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-4">No sessions enrolled</TableCell></TableRow>
                   ) : (
                     (st.sessions ?? []).map((ss: any) => (
                       <TableRow key={ss.id}>
                         <TableCell>{ss.date ? format(new Date(ss.date + 'T00:00:00'), 'yyyy/M/d') : '-'}</TableCell>
                         <TableCell>{ss.subject}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            ss.status === 'present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {ss.status === 'present' ? 'Present' : 'Absent'}
+                          </span>
+                        </TableCell>
                         <TableCell>${(ss.price || 0).toFixed(2)}</TableCell>
                       </TableRow>
                     ))
