@@ -23,6 +23,7 @@ export default function TeacherSchedule() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [studentPrices, setStudentPrices] = useState<Record<string, number>>({})
   const [studentSearch, setStudentSearch] = useState('')
 
   const filteredStudents = students.filter((s: any) =>
@@ -55,9 +56,12 @@ export default function TeacherSchedule() {
 
   const openEdit = async (s: any) => {
     setEditing(s)
-    // Load current students for this session
-    const ssData = await apiGet(`session_students?select=student_id&session_id=eq.${s.id}`)
-    setSelectedStudents((ssData ?? []).map((ss: any) => ss.student_id))
+    const ssData = await apiGet(`session_students?select=student_id,price&session_id=eq.${s.id}`)
+    const ids = (ssData ?? []).map((ss: any) => ss.student_id)
+    setSelectedStudents(ids)
+    const prices: Record<string, number> = {}
+    ssData?.forEach((ss: any) => { prices[ss.student_id] = ss.price ?? s.price_per_student ?? 0 })
+    setStudentPrices(prices)
     setStudentSearch('')
     setOpen(true)
   }
@@ -90,7 +94,7 @@ export default function TeacherSchedule() {
       if (selectedStudents.length > 0) {
         await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-          body: JSON.stringify(selectedStudents.map((sid: string) => ({ session_id: editing.id, student_id: sid }))),
+          body: JSON.stringify(selectedStudents.map((sid: string) => ({ session_id: editing.id, student_id: sid, price: studentPrices[sid] ?? null }))),
         })
       }
     } else {
@@ -104,7 +108,7 @@ export default function TeacherSchedule() {
       if (selectedStudents.length > 0 && newSessions?.[0]) {
         await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-          body: JSON.stringify(selectedStudents.map((sid: string) => ({ session_id: newSessions[0].id, student_id: sid }))),
+          body: JSON.stringify(selectedStudents.map((sid: string) => ({ session_id: newSessions[0].id, student_id: sid, price: studentPrices[sid] ?? null }))),
         })
       }
     }
@@ -113,6 +117,7 @@ export default function TeacherSchedule() {
     setOpen(false)
     setEditing(null)
     setSelectedStudents([])
+    setStudentPrices({})
     load()
   }
 
@@ -151,7 +156,7 @@ export default function TeacherSchedule() {
           <span className="text-sm text-muted-foreground min-w-[140px] text-center">{format(weekStart, 'M/d')} - {format(addDays(weekStart, 6), 'M/d')}</span>
           <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setSelectedStudents([]); setStudentSearch('') } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setSelectedStudents([]); setStudentPrices({}); setStudentSearch('') } }}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />New Session</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle></DialogHeader>

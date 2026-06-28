@@ -27,6 +27,7 @@ export default function AdminSchedule() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
+  const [studentPrices, setStudentPrices] = useState<Record<string, number>>({})
   const [studentSearch, setStudentSearch] = useState('')
 
   const filteredStudents = students.filter((s: any) =>
@@ -52,8 +53,12 @@ export default function AdminSchedule() {
 
   const openEdit = async (s: any) => {
     setEditing(s)
-    const ssData = await apiGet(`session_students?select=student_id&session_id=eq.${s.id}`)
-    setSelectedStudents((ssData ?? []).map((ss: any) => ss.student_id))
+    const ssData = await apiGet(`session_students?select=student_id,price&session_id=eq.${s.id}`)
+    const ids = (ssData ?? []).map((ss: any) => ss.student_id)
+    setSelectedStudents(ids)
+    const prices: Record<string, number> = {}
+    ssData?.forEach((ss: any) => { prices[ss.student_id] = ss.price ?? s.price_per_student ?? 0 })
+    setStudentPrices(prices)
     setOpen(true)
   }
 
@@ -95,7 +100,7 @@ export default function AdminSchedule() {
       if (selectedStudents.length > 0) {
         await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-          body: JSON.stringify(selectedStudents.map(sid => ({ session_id: editing.id, student_id: sid }))),
+          body: JSON.stringify(selectedStudents.map(sid => ({ session_id: editing.id, student_id: sid, price: studentPrices[sid] ?? null }))),
         })
       }
     } else {
@@ -108,7 +113,7 @@ export default function AdminSchedule() {
       if (selectedStudents.length > 0 && newSessions?.[0]) {
         await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-          body: JSON.stringify(selectedStudents.map(sid => ({ session_id: newSessions[0].id, student_id: sid }))),
+          body: JSON.stringify(selectedStudents.map(sid => ({ session_id: newSessions[0].id, student_id: sid, price: studentPrices[sid] ?? null }))),
         })
       }
     }
@@ -144,7 +149,7 @@ export default function AdminSchedule() {
           <span className="text-sm text-muted-foreground min-w-[140px] text-center">{format(weekStart, 'M/d')} - {format(addDays(weekStart, 6), 'M/d')}</span>
           <Button variant="outline" size="icon" onClick={() => setWeekStart(addWeeks(weekStart, 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setSelectedStudents([]) } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setSelectedStudents([]); setStudentPrices({}) } }}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />New Session</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{editing ? 'Edit Session' : 'New Session'}</DialogTitle></DialogHeader>
@@ -172,18 +177,34 @@ export default function AdminSchedule() {
                 <div className="space-y-2"><Label htmlFor="price">Price ($)</Label><Input id="price" name="price" type="number" defaultValue={editing?.price_per_student ?? 0} /></div>
               </div>
               <div className="space-y-2">
-                  <Label>Students (select multiple)</Label>
-                  <Input placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-2" />
-                  <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                    {filteredStudents.map((s: any) => (
-                      <label key={s.id} className="flex items-center gap-1 text-sm cursor-pointer">
-                        <input type="checkbox" checked={selectedStudents.includes(s.id)}
-                          onChange={(e) => e.target.checked ? setSelectedStudents([...selectedStudents, s.id]) : setSelectedStudents(selectedStudents.filter(id => id !== s.id))} />
-                        {s.profile?.name}
-                      </label>
-                    ))}
-                  </div>
+                <Label>Students</Label>
+                <Input placeholder="Search students..." value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} className="mb-2" />
+                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                  {filteredStudents.map((s: any) => {
+                    const checked = selectedStudents.includes(s.id)
+                    return (
+                      <div key={s.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={checked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStudents([...selectedStudents, s.id])
+                              setStudentPrices({ ...studentPrices, [s.id]: editing?.price_per_student ?? 0 })
+                            } else {
+                              setSelectedStudents(selectedStudents.filter((id: string) => id !== s.id))
+                              const p = { ...studentPrices }; delete p[s.id]; setStudentPrices(p)
+                            }
+                          }} />
+                        <span className="w-28 truncate">{s.profile?.name}</span>
+                        {checked && (
+                          <input type="number" step="0.01" className="w-24 h-7 rounded border border-input px-2 text-xs"
+                            defaultValue={studentPrices[s.id] ?? editing?.price_per_student ?? 0}
+                            onChange={(e) => setStudentPrices({ ...studentPrices, [s.id]: parseFloat(e.target.value) || 0 })} />
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                 <Button type="submit">Save</Button>
