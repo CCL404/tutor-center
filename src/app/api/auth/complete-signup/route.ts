@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Find the auth user by email
-    const adminRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?filter=email%3D${encodeURIComponent(email)}`, {
+    // Don't URL-encode the @ - Supabase admin API filter doesn't decode it
+    const adminRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?filter=email%3D${email}`, {
       headers: {
         apikey: SERVICE_KEY,
         Authorization: `Bearer ${SERVICE_KEY}`,
