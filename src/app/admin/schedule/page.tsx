@@ -29,12 +29,14 @@ export default function AdminSchedule() {
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [studentPrices, setStudentPrices] = useState<Record<string, number>>({})
   const [studentSearch, setStudentSearch] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
   const filteredStudents = students.filter((s: any) =>
     !studentSearch || s.profile?.name?.toLowerCase().includes(studentSearch.toLowerCase())
   )
 
   const load = async () => {
+    setLoaded(false)
     const dateStart = format(weekStart, 'yyyy-MM-dd')
     const dateEnd = format(addDays(weekStart, 6), 'yyyy-MM-dd')
 
@@ -47,6 +49,7 @@ export default function AdminSchedule() {
     setSessions(sessData ?? [])
     setTeachers(teacherData ?? [])
     setStudents(stuRes?.students ?? [])
+    setLoaded(true)
   }
 
   useEffect(() => { load() }, [weekStart])
@@ -213,29 +216,33 @@ export default function AdminSchedule() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid gap-3 md:grid-cols-7">
-        {byDay.map(({ label, dateStr, sessions: daySessions }) => (
-          <div key={dateStr} className="space-y-2">
-            <div className="text-center text-sm font-medium py-1 bg-muted rounded-md">{label}<br /><span className="text-muted-foreground text-xs">{format(new Date(dateStr + 'T00:00:00'), 'M/d')}</span></div>
-            <div className="space-y-2 min-h-[120px]">
-              {daySessions.map((s: any) => (
-                <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => openEdit(s)}>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.teacher?.color ?? '#6366f1' }} />
-                    <span className="font-medium">{fmtTime(s.start_time)}</span>
+      {!loaded ? (
+        <div className="text-center text-muted-foreground py-12">Loading...</div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-7">
+          {byDay.map(({ label, dateStr, sessions: daySessions }) => (
+            <div key={dateStr} className="space-y-2">
+              <div className="text-center text-sm font-medium py-1 bg-muted rounded-md">{label}<br /><span className="text-muted-foreground text-xs">{format(new Date(dateStr + 'T00:00:00'), 'M/d')}</span></div>
+              <div className="space-y-2 min-h-[120px]">
+                {daySessions.map((s: any) => (
+                  <div key={s.id} className="p-2 rounded-md border cursor-pointer hover:bg-accent text-xs space-y-1" onClick={() => openEdit(s)}>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.teacher?.color ?? '#6366f1' }} />
+                      <span className="font-medium">{fmtTime(s.start_time)}</span>
+                    </div>
+                    <p>{s.subject}</p>
+                    <p className="text-muted-foreground">{s.teacher?.profile?.name}</p>
+                    <p className="text-muted-foreground truncate">
+                      {(s.session_students ?? []).map((ss: any) => studentMap[ss.student_id]).filter(Boolean).join(', ')}
+                    </p>
+                    <Badge variant="outline" className="text-[10px] px-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); remove(s.id) }}>Delete</Badge>
                   </div>
-                  <p>{s.subject}</p>
-                  <p className="text-muted-foreground">{s.teacher?.profile?.name}</p>
-                  <p className="text-muted-foreground truncate">
-                    {(s.session_students ?? []).map((ss: any) => studentMap[ss.student_id]).filter(Boolean).join(', ')}
-                  </p>
-                  <Badge variant="outline" className="text-[10px] px-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); remove(s.id) }}>Delete</Badge>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
