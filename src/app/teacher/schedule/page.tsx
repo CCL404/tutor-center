@@ -90,16 +90,16 @@ export default function TeacherSchedule() {
       })
       if (!res.ok) { toast.error('Update failed'); return }
 
-      // Replace session_students: delete all then insert new
-      await fetch(`${SUPABASE_URL}/rest/v1/session_students?session_id=eq.${editing.id}`, {
-        method: 'DELETE', headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}` },
+      // Replace session_students via API (uses service_role key, bypasses RLS)
+      const ssRes = await fetch('/api/teacher/update-session-students', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: editing.id,
+          studentIds: selectedStudents,
+          studentPrices,
+        }),
       })
-      if (selectedStudents.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/session_students`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: `Bearer ${token}` },
-          body: JSON.stringify(selectedStudents.map((sid: string) => ({ session_id: editing.id, student_id: sid, price: studentPrices[sid] ?? null }))),
-        })
-      }
+      if (!ssRes.ok) { toast.error('Failed to update students'); return }
     } else {
       // Create session
       const res = await fetch(`${SUPABASE_URL}/rest/v1/sessions`, {
