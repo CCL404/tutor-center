@@ -136,13 +136,15 @@ export default function AdminTeachers() {
                   </div>
                 </>
               )}
+              {editing && (
+                <div className="space-y-2">
+                  <Label htmlFor="email-edit">Email</Label>
+                  <Input id="email-edit" name="email" type="email" defaultValue={editing?.profile?.email ?? ''} required placeholder="teacher@email.com" />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" name="name" defaultValue={editing?.profile?.name ?? ''} required placeholder="e.g. John Smith" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" defaultValue={editing?.profile?.email ?? ''} required placeholder="teacher@email.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
