@@ -87,7 +87,7 @@ export default function AdminFinance() {
     if (attId) {
       const ok = await apiAdminPatch(`attendance?id=eq.${attId}`, { status: newStatus })
       if (!ok) { toast.error('Failed to update status'); return }
-    } else {
+    } else if (newStatus !== 'pending') {
       const ok = await apiAdminPost('attendance', {
         student_id: studentId,
         session_id: sessionId,
