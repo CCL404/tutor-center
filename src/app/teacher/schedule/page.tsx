@@ -46,7 +46,7 @@ export default function TeacherSchedule() {
     }
 
     const [sessData, stuRes] = await Promise.all([
-      apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date.asc&order=start_time.asc`),
+      apiGet(`sessions?select=*,session_students(student_id),teacher:teachers(id,color,subjects,profile:profiles(name))&date=gte.${dateStart}&date=lte.${dateEnd}&order=date.asc,start_time.asc`),
       fetch('/api/admin/students').then(r => r.json()),
     ])
 
