@@ -31,43 +31,57 @@ export default function AdminFinance() {
     const profileMap: Record<string, any> = {}
     profiles.forEach((p: any) => { profileMap[p.id] = p })
 
-    const ssMap: Record<string, any[]> = {}
-    const payMap: Record<string, number> = {}
     const monthStart = `${monthStr}-01`
     const monthEnd = format(addMonths(new Date(monthStart), 1), 'yyyy-MM-dd')
 
-    await Promise.all(stuData.map(async (s: any) => {
-      const sid = s.id
+    // Batch fetch all data for the month — 3 queries total instead of N+1
+    const [allEnrolled, allAttendance, allPayments] = await Promise.all([
+      apiAdmin(`session_students?select=id,price,student_id,session:sessions(id,date,subject,start_time)&session.date=gte.${monthStart}&session.date=lt.${monthEnd}`),
+      apiAdmin(`attendance?select=id,session_id,student_id,status&date=gte.${monthStart}&date=lt.${monthEnd}`),
+      apiAdmin(`payments?select=student_id,amount_paid,paid_at&paid_at=gte.${monthStart}&paid_at=lt.${monthEnd}`),
+    ])
 
-      // All enrolled sessions (no attendance filter)
-      const enrolled = (await apiAdmin(`session_students?select=id,price,session:sessions(id,date,subject,start_time)&student_id=eq.${sid}&session.date=gte.${monthStart}&session.date=lt.${monthEnd}`)) ?? []
+    const ssMap: Record<string, any[]> = {}
+    const payMap: Record<string, number> = {}
 
-      // Attendance for this student
-      const attendanceRecords = (await apiAdmin(`attendance?select=id,session_id,status&student_id=eq.${sid}&date=gte.${monthStart}&date=lt.${monthEnd}`)) ?? []
-      const statusMap: Record<string, string> = {}
-      const attIdMap: Record<string, string> = {}
-      attendanceRecords.forEach((a: any) => {
-        statusMap[a.session_id] = a.status
-        attIdMap[a.session_id] = a.id
+    // Group session_students by student_id
+    ;(allEnrolled ?? []).forEach((e: any) => {
+      if (!e.session) return
+      const sid = e.student_id
+      if (!ssMap[sid]) ssMap[sid] = []
+      ssMap[sid].push({
+        id: e.session.id,
+        ssId: e.id,
+        date: e.session.date,
+        subject: e.session.subject,
+        start_time: e.session.start_time,
+        price: e.price || 0,
+        status: 'pending',
+        attId: null,
       })
+    })
 
-      ssMap[sid] = enrolled
-        .filter((e: any) => e.session) // only if session exists
-        .map((e: any) => ({
-          id: e.session?.id,
-          ssId: e.id,
-          date: e.session?.date,
-          subject: e.session?.subject,
-          start_time: e.session?.start_time,
-          price: e.price || 0,
-          status: statusMap[e.session?.id] || 'pending',
-          attId: attIdMap[e.session?.id] || null,
-        }))
-        .sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
+    // Apply attendance status
+    const attByStudent: Record<string, Record<string, { status: string; id: string }>> = {}
+    ;(allAttendance ?? []).forEach((a: any) => {
+      if (!attByStudent[a.student_id]) attByStudent[a.student_id] = {}
+      attByStudent[a.student_id][a.session_id] = { status: a.status, id: a.id }
+    })
 
-      const pays = (await apiAdmin(`payments?select=amount_paid&student_id=eq.${sid}&paid_at=gte.${monthStart}&paid_at=lt.${monthEnd}`)) ?? []
-      payMap[sid] = pays.reduce((sum: number, p: any) => sum + (p.amount_paid || 0), 0)
-    }))
+    Object.entries(ssMap).forEach(([sid, sessions]) => {
+      const studentAtt = attByStudent[sid] || {}
+      sessions.forEach((s: any) => {
+        const att = studentAtt[s.id]
+        if (att) { s.status = att.status; s.attId = att.id }
+      })
+      // Sort by date desc, then time desc
+      sessions.sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '') || (b.start_time || '').localeCompare(a.start_time || ''))
+    })
+
+    // Sum payments by student
+    ;(allPayments ?? []).forEach((p: any) => {
+      payMap[p.student_id] = (payMap[p.student_id] || 0) + (p.amount_paid || 0)
+    })
 
     setStudents(stuData.map((s: any) => ({ ...s, profile: profileMap[s.user_id] ?? null })))
     setSessionsMap(ssMap)
