@@ -19,6 +19,7 @@ export default function AdminFinance() {
   const [saving, setSaving] = useState(false)
   const [month, setMonth] = useState(new Date())
   const [loaded, setLoaded] = useState(false)
+  const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set())
   const monthStr = format(month, 'yyyy-MM')
 
   const load = useCallback(async () => {
@@ -153,12 +154,21 @@ export default function AdminFinance() {
 
       {students.filter(s => (sessionsMap[s.id] || []).length > 0).map((s) => {
         const st = getStudentStats(s)
+        const expanded = expandedStudents.has(s.id)
+        const toggle = () => {
+          const next = new Set(expandedStudents)
+          if (expanded) next.delete(s.id); else next.add(s.id)
+          setExpandedStudents(next)
+        }
         return (
           <Card key={s.id}>
-            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-base">{s.profile?.name ?? 'Unknown'}</CardTitle>
-                <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50" onClick={toggle}>
+              <div className="flex items-center gap-3">
+                <span className={`transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
+                <div>
+                  <CardTitle className="text-base">{s.profile?.name ?? 'Unknown'}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{s.profile?.email}</p>
+                </div>
               </div>
               <div className="text-right">
                 <p className={`text-lg font-bold ${st.outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -167,56 +177,60 @@ export default function AdminFinance() {
                 <p className="text-xs text-muted-foreground">Due: ${st.totalDue.toFixed(2)} · Paid: ${st.totalPaid.toFixed(2)}</p>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Price</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(st.sessions ?? []).length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-4">No sessions this month</TableCell></TableRow>
-                  ) : (
-                    (st.sessions ?? []).map((ss: any) => (
-                      <TableRow key={ss.id} className={ss.status !== 'present' ? 'opacity-60' : ''}>
-                        <TableCell>{ss.date ? format(new Date(ss.date + 'T00:00:00'), 'yyyy/M/d') : '-'}</TableCell>
-                        <TableCell>{ss.subject}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => toggleStatus(s.id, ss.id, ss.status, ss.attId)}
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer border ${
-                                ss.status === 'present'
-                                  ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
-                                  : 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200'
-                              }`}
-                            >
-                              {ss.status === 'present' ? 'Present' : 'Absent'}
-                            </button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <EditablePrice
-                            value={ss.price}
-                            ssId={ss.ssId}
-                            onSave={updatePrice}
-                          />
-                        </TableCell>
+            {expanded && (
+              <>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Price</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-            <div className="p-3 border-t flex justify-end">
-              <Button size="sm" onClick={() => setPayDialog({ student: s, totalDue: st.totalDue, totalPaid: st.totalPaid })}>
-                Record Payment
-              </Button>
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {(st.sessions ?? []).length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-4">No sessions this month</TableCell></TableRow>
+                      ) : (
+                        (st.sessions ?? []).map((ss: any) => (
+                          <TableRow key={ss.id} className={ss.status !== 'present' ? 'opacity-60' : ''}>
+                            <TableCell>{ss.date ? format(new Date(ss.date + 'T00:00:00'), 'yyyy/M/d') : '-'}</TableCell>
+                            <TableCell>{ss.subject}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => toggleStatus(s.id, ss.id, ss.status, ss.attId)}
+                                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer border ${
+                                    ss.status === 'present'
+                                      ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
+                                      : 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200'
+                                  }`}
+                                >
+                                  {ss.status === 'present' ? 'Present' : 'Absent'}
+                                </button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <EditablePrice
+                                value={ss.price}
+                                ssId={ss.ssId}
+                                onSave={updatePrice}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <div className="p-3 border-t flex justify-end">
+                  <Button size="sm" onClick={() => setPayDialog({ student: s, totalDue: st.totalDue, totalPaid: st.totalPaid })}>
+                    Record Payment
+                  </Button>
+                </div>
+              </>
+            )}
           </Card>
         )
       })}
